@@ -23,7 +23,7 @@ public class LexerUnit {
         KeyWords.put("else", TokenType.ELSE);
     }
 
-    public class Token extends TokenBase {
+    public static class Token extends TokenBase {
         public TokenType type;
         public Token(TokenType type, Position position, Object value) {
             super(position, value);
@@ -34,7 +34,7 @@ public class LexerUnit {
         }
     }
 
-    public class Lexer extends LexerBase {
+    public static class Lexer extends LexerBase {
         private Token getIdentifier(Position startPosition) {
             while(isAlphaNumeric(peekChar()))
                 nextChar();
@@ -82,47 +82,49 @@ public class LexerUnit {
                 case (char)0:
                     return new Token(TokenType.EOF, position, "EOF");
                 case (char)',':
-                    return new Token(TokenType.COMMA, position);
+                    return new Token(TokenType.COMMA, position, code.substring(start, currentPosition));
                 case ')':
-                    return new Token(TokenType.RIGHT_PAREN, position);
+                    return new Token(TokenType.RIGHT_PAREN, position, code.substring(start, currentPosition));
                 case '(':
-                    return new Token(TokenType.LEFT_PAREN, position);
+                    return new Token(TokenType.LEFT_PAREN, position, code.substring(start, currentPosition));
                 case '}':
-                    return new Token(TokenType.RIGHT_BRACE, position);
+                    return new Token(TokenType.RIGHT_BRACE, position, code.substring(start, currentPosition));
                 case '{':
-                    return new Token(TokenType.LEFT_BRACE, position);
+                    return new Token(TokenType.LEFT_BRACE, position, code.substring(start, currentPosition));
                 case '[':
-                    return new Token(TokenType.LEFT_BRACKET, position);
+                    return new Token(TokenType.LEFT_BRACKET, position, code.substring(start, currentPosition));
                 case ']':
-                    return new Token(TokenType.RIGHT_BRACKET, position);
+                    return new Token(TokenType.RIGHT_BRACKET, position, code.substring(start, currentPosition));
                 case '+':
-                    return new Token(isMatch('=') ? TokenType.ASSIGNPLUS: TokenType.PLUS, position);
+                    return new Token(isMatch('=') ? TokenType.ASSIGNPLUS: TokenType.PLUS, position, code.substring(start, currentPosition));
                 case '-':
-                    return new Token(isMatch('=') ? TokenType.ASSIGNMINUS: TokenType.MINUS, position);
+                    return new Token(isMatch('=') ? TokenType.ASSIGNMINUS: TokenType.MINUS, position, code.substring(start, currentPosition));
                 case '*':
-                    return new Token(isMatch('=') ? TokenType.ASSIGNMULTIPLE: TokenType.MULTIPLE, position);
+                    return new Token(isMatch('=') ? TokenType.ASSIGNMULTIPLE: TokenType.MULTIPLE, position, code.substring(start, currentPosition));
                 case '/':
                     if(isMatch('/'))
                         while (peekChar() != '\n' && !isAtEnd())
                             nextChar();
-                    return new Token(isMatch('=') ? TokenType.ASSIGNDIVIDE: TokenType.DIVIDE, position);
+                    return new Token(isMatch('=') ? TokenType.ASSIGNDIVIDE: TokenType.DIVIDE, position, code.substring(start, currentPosition));
                 case ':':
-                    return new Token(TokenType.COLON, position);
+                    return new Token(TokenType.COLON, position, code.substring(start, currentPosition));
+                case ';':
+                    return new Token(TokenType.SEMICOLON, position, code.substring(start, currentPosition));
                 case '=':
-                    return new Token(isMatch('=') ? TokenType.EQUAL: TokenType.ASSIGN, position);
+                    return new Token(isMatch('=') ? TokenType.EQUAL: TokenType.ASSIGN, position, code.substring(start, currentPosition));
                 case '!':
-                    return new Token(isMatch('=') ? TokenType.NOTEQUAL: TokenType.NOT, position);
+                    return new Token(isMatch('=') ? TokenType.NOTEQUAL: TokenType.NOT, position, code.substring(start, currentPosition));
                 case '>':
-                    return new Token(isMatch('=') ? TokenType.GREATEREQUAL: TokenType.GREATER, position);
+                    return new Token(isMatch('=') ? TokenType.GREATEREQUAL: TokenType.GREATER, position, code.substring(start, currentPosition));
                 case '<':
-                    return new Token(isMatch('=') ? TokenType.LESSEQUAL: TokenType.LESS, position);
+                    return new Token(isMatch('=') ? TokenType.LESSEQUAL: TokenType.LESS, position, code.substring(start, currentPosition));
                 case '&':
                     if(isMatch('&'))
-                        return new Token(TokenType.AND, position);
+                        return new Token(TokenType.AND, position, code.substring(start, currentPosition));
                     else throw new CompilerException.LexerException("Неверный символ " + peekChar() + " после &", getCurrentPosition());
                 case '|':
                     if(isMatch('|'))
-                        return new Token(TokenType.OR, position);
+                        return new Token(TokenType.OR, position, code.substring(start, currentPosition));
                     else throw new CompilerException.LexerException("Неверный символ " + peekChar() + " после |", getCurrentPosition());
                 case '"':
                     return getString(position);
