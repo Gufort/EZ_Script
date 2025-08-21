@@ -25,11 +25,11 @@ public class CompilerException{
         }
     }
 
-    public void lexerError(String message, Position position) throws LexerException{
+    public static void lexerError(String message, Position position) throws LexerException{
         throw new LexerException(message, position);
     }
 
-    public void syntaxError(String message, Position position) throws SyntaxException{
+    public static void syntaxError(String message, Position position) throws SyntaxException{
         throw new SyntaxException(message, position);
     }
 
