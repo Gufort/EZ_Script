@@ -12,6 +12,7 @@ public abstract class ASTNodes {
         T visitDouble(DoubleNode d);
         T visitId(IdNode id);
         T visitAssign(AssignNode ass);
+        T visitAssignPlus(AssignPlusNode ass);
         T visitIf(IfNode ifn);
         T visitWhile(WhileNode whl);
         T visitProcCall(ProcCallNode p);
@@ -29,6 +30,7 @@ public abstract class ASTNodes {
         void visitDouble(DoubleNode d);
         void visitId(IdNode id);
         void visitAssign(AssignNode ass);
+        void visitAssignPlus(AssignPlusNode ass);
         void visitIf(IfNode ifn);
         void visitWhile(WhileNode whn);
         void visitProcCall(ProcCallNode p);
@@ -41,6 +43,7 @@ public abstract class ASTNodes {
     }
 
     public static class ExprNode extends Node{
+        public Position position;
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitExprNode(this); };
         @Override
@@ -48,21 +51,27 @@ public abstract class ASTNodes {
     }
 
     public static class StatementNode extends Node{
+        public Position position;
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitStatementNode(this); };
         @Override
         public void visit(IVisitorP v){ v.visitStatementNode(this); }
+        public void setPos(Position pos){
+            position = pos;
+        }
     }
 
     public static class BinOpNode extends ExprNode{
         public ExprNode left;
         public ExprNode right;
         public String op;
+        public Position position;
 
-        public BinOpNode(ExprNode left, ExprNode right, String op){
+        public BinOpNode(ExprNode left, ExprNode right, String op, Position position) {
             this.left = left;
             this.right = right;
             this.op = op;
+            this.position = position;
         }
 
         @Override
@@ -73,6 +82,7 @@ public abstract class ASTNodes {
 
     public static class StatementListNode extends StatementNode{
         public ArrayList<StatementNode> statements = new ArrayList<StatementNode>();
+        public Position position;
         public void add(StatementNode statement){ statements.add(statement); }
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitStatementList(this); };
@@ -91,7 +101,13 @@ public abstract class ASTNodes {
 
     public static class IntNode extends ExprNode{
         public int value;
-        public IntNode(int value) { this.value = value; }
+        public Position position;
+
+        public IntNode(int value, Position position) {
+            this.value = value;
+            this.position = position;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitInt(this); }
         @Override
@@ -100,7 +116,11 @@ public abstract class ASTNodes {
 
     public static class DoubleNode extends ExprNode{
         public double value;
-        public DoubleNode(double value) { this.value = value; }
+        public Position position;
+        public DoubleNode(double value, Position position) {
+            this.value = value;
+            this.position = position;
+        }
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitDouble(this); }
         @Override
@@ -109,7 +129,12 @@ public abstract class ASTNodes {
 
     public static class IdNode extends ExprNode{
         public String name;
-        public IdNode(String name) { this.name = name; }
+        public Position position;
+
+        public IdNode(String name, Position position) {
+            this.name = name;
+            this.position = position;
+        }
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitId(this); }
         @Override
@@ -119,9 +144,12 @@ public abstract class ASTNodes {
     public static class AssignNode extends StatementNode{
         public IdNode id;
         public ExprNode expr;
-        public AssignNode(IdNode id, ExprNode expr) {
+        public Position position;
+
+        public AssignNode(IdNode id, ExprNode expr, Position position) {
             this.id = id;
             this.expr = expr;
+            this.position = position;
         }
 
         @Override
@@ -130,14 +158,34 @@ public abstract class ASTNodes {
         public void visit(IVisitorP v){ v.visitAssign(this); }
     }
 
+    public static class AssignPlusNode extends StatementNode{
+        public IdNode id;
+        public ExprNode expr;
+        public Position position;
+
+        public AssignPlusNode(IdNode id, ExprNode expr, Position position) {
+            this.id = id;
+            this.expr = expr;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v){ return v.visitAssignPlus(this); }
+        @Override
+        public void visit(IVisitorP v){ v.visitAssignPlus(this); }
+    }
+
     public static class IfNode extends StatementNode{
         public ExprNode cond;
-        public ExprNode then;
-        public ExprNode elseif;
-        public IfNode(ExprNode cond, ExprNode then, ExprNode elseif) {
+        public StatementNode then;
+        public StatementNode elseif;
+        public Position position;
+
+        public IfNode(ExprNode cond, StatementNode then, StatementNode elseif, Position position) {
             this.cond = cond;
             this.then = then;
             this.elseif = elseif;
+            this.position = position;
         }
 
         @Override
@@ -148,10 +196,13 @@ public abstract class ASTNodes {
 
     public static class WhileNode extends StatementNode{
         public ExprNode cond;
-        public ExprNode stat;
-        public WhileNode(ExprNode cond, ExprNode stat) {
+        public StatementNode stat;
+        public Position position;
+
+        public WhileNode(ExprNode cond, StatementNode stat, Position position) {
             this.cond = cond;
             this.stat = stat;
+            this.position = position;
         }
 
         @Override
@@ -163,9 +214,12 @@ public abstract class ASTNodes {
     public static class ProcCallNode extends StatementNode{
         public IdNode name;
         public ExprListNode pars;
-        public ProcCallNode(IdNode name, ExprListNode pars) {
+        public Position position;
+
+        public ProcCallNode(IdNode name, ExprListNode pars, Position position) {
             this.name = name;
             this.pars = pars;
+            this.position = position;
         }
 
         @Override
@@ -177,9 +231,12 @@ public abstract class ASTNodes {
     public static class FuncCallNode extends ExprNode{
         public IdNode name;
         public ExprListNode pars;
-        public FuncCallNode(IdNode name, ExprListNode pars) {
+        public Position position;
+
+        public FuncCallNode(IdNode name, ExprListNode pars, Position position) {
             this.name = name;
             this.pars = pars;
+            this.position = position;
         }
 
         @Override
