@@ -78,6 +78,10 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){return v.visitBinOp(this); };
         @Override
         public void visit(IVisitorP v){ v.visitBinOp(this); }
+        @Override
+        public String toString() {
+            return "(" + op + ",(" + left + "),(" + right + "))";
+        }
     }
 
     public static class StatementListNode extends StatementNode{
@@ -88,6 +92,18 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitStatementList(this); };
         @Override
         public void visit(IVisitorP v){ v.visitStatementList(this); }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < statements.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(statements.get(i).toString());
+            }
+            sb.append("]");
+            return sb.toString();
+        }
     }
 
     public static class ExprListNode extends Node{
@@ -97,6 +113,17 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitExprList(this); };
         @Override
         public void visit(IVisitorP v){ v.visitExprList(this); }
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < lst.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append("(" + lst.get(i) + ")");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
     }
 
     public static class IntNode extends ExprNode{
@@ -112,6 +139,8 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitInt(this); }
         @Override
         public void visit(IVisitorP v){ v.visitInt(this); }
+        @Override
+        public String toString() { return String.valueOf(value); }
     }
 
     public static class DoubleNode extends ExprNode{
@@ -125,6 +154,8 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitDouble(this); }
         @Override
         public void visit(IVisitorP v){ v.visitDouble(this); }
+        @Override
+        public String toString() { return String.valueOf(value); }
     }
 
     public static class IdNode extends ExprNode{
@@ -139,6 +170,8 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitId(this); }
         @Override
         public void visit(IVisitorP v){ v.visitId(this); }
+        @Override
+        public String toString() { return name; }
     }
 
     public static class AssignNode extends StatementNode{
@@ -156,6 +189,10 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitAssign(this); }
         @Override
         public void visit(IVisitorP v){ v.visitAssign(this); }
+        @Override
+        public String toString() {
+            return "((" + expr + "),(" + id + "))";
+        }
     }
 
     public static class AssignPlusNode extends StatementNode{
@@ -173,6 +210,10 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitAssignPlus(this); }
         @Override
         public void visit(IVisitorP v){ v.visitAssignPlus(this); }
+        @Override
+        public String toString() {
+            return "((+=,(" + expr + "),(" + id + ")))";
+        }
     }
 
     public static class IfNode extends StatementNode{
@@ -192,6 +233,14 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitIf(this); }
         @Override
         public void visit(IVisitorP v){ v.visitIf(this); }
+        @Override
+        public String toString() {
+            if (elseif != null) {
+                return "(if,(" + cond + "),(" + then + "),(" + elseif + "))";
+            } else {
+                return "(if,(" + cond + "),(" + then + "))";
+            }
+        }
     }
 
     public static class WhileNode extends StatementNode{
@@ -209,6 +258,10 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitWhile(this); }
         @Override
         public void visit(IVisitorP v){ v.visitWhile(this); }
+        @Override
+        public String toString() {
+            return "((" + stat + "),(" + cond + "))";
+        }
     }
 
     public static class ProcCallNode extends StatementNode{
@@ -226,6 +279,10 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitProcCall(this); }
         @Override
         public void visit(IVisitorP v){ v.visitProcCall(this); }
+        @Override
+        public String toString() {
+            return "((" + pars + "),(" + name + "))";
+        }
     }
 
     public static class FuncCallNode extends ExprNode{
@@ -243,5 +300,7 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitFuncCall(this); }
         @Override
         public void visit(IVisitorP v){ v.visitFuncCall(this); }
+        @Override
+        public String toString() { return "((" + pars + "),(" + name + "))"; }
     }
 }

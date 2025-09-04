@@ -14,7 +14,6 @@ public class Parser extends ParserBase{
     public ASTNodes.StatementNode statementList() throws Exception{
         var res = new ASTNodes.StatementListNode();
         res.add(statement());
-        requires(LexerUnit.TokenType.EOF);
         while(isMatch(LexerUnit.TokenType.SEMICOLON)){
             res.add(statement());
         }
@@ -126,10 +125,10 @@ public class Parser extends ParserBase{
     public ASTNodes.ExprNode factor() throws Exception{
         var position = currentToken.position;
         if(at(LexerUnit.TokenType.INT))
-            return new ASTNodes.IntNode((int)advance().value, position);
+            return new ASTNodes.IntNode(Integer.parseInt(advance().value.toString()), position);
 
         else if(at(LexerUnit.TokenType.DOUBLELITERAL))
-            return new ASTNodes.DoubleNode((double)advance().value, position);
+            return new ASTNodes.DoubleNode(Double.parseDouble(advance().value.toString()), position);
 
         else if(at(LexerUnit.TokenType.LEFT_PAREN)){
             var res = expr();
@@ -139,7 +138,7 @@ public class Parser extends ParserBase{
 
         else if(at(LexerUnit.TokenType.ID)){
             var id = ident();
-            if(at(LexerUnit.TokenType.LEFT_PAREN)){
+            if(isMatch(LexerUnit.TokenType.LEFT_PAREN)){
                 var exprlst = exprList();
                 var res = new ASTNodes.FuncCallNode(id, exprlst, position);
                 requires(LexerUnit.TokenType.RIGHT_PAREN);

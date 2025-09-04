@@ -37,7 +37,7 @@ public class CompilerException{
         throw new SemanticException(message, position);
     }
 
-    public void outputError(String message, BaseCompilerException exception, String[] lines) throws Exception{
+    public static void outputError(String message, BaseCompilerException exception, String[] lines) throws Exception{
         var line = lines[exception.position.line - 1];
         System.out.println(message + " " + exception.position + ": " + exception.getMessage());
     }
