@@ -1,6 +1,11 @@
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 public abstract class ASTNodes {
+
+    public static Dictionary<String, Double> varValues = new Hashtable<String, Double>();
+
     interface IVisitor<T>{
         T visitNode(Node bin);
         T visitExprNode(ExprNode bin);
@@ -42,15 +47,17 @@ public abstract class ASTNodes {
         public abstract void visit(IVisitorP v);
     }
 
-    public static class ExprNode extends Node{
+    public static abstract class ExprNode extends Node{
         public Position position;
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitExprNode(this); };
         @Override
         public void visit(IVisitorP v){ v.visitExprNode(this); }
+
+        public abstract double eval() throws Exception;
     }
 
-    public static class StatementNode extends Node{
+    public static abstract class StatementNode extends Node{
         public Position position;
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitStatementNode(this); };
@@ -59,6 +66,7 @@ public abstract class ASTNodes {
         public void setPos(Position pos){
             position = pos;
         }
+        public abstract void execute() throws Exception;
     }
 
     public static class BinOpNode extends ExprNode{
@@ -74,10 +82,36 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public BinOpNode(ExprNode left, ExprNode right, String op) {
+            this.left = left;
+            this.right = right;
+            this.op = op;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){return v.visitBinOp(this); };
         @Override
         public void visit(IVisitorP v){ v.visitBinOp(this); }
+
+        @Override
+        public double eval() throws Exception{
+            var l = left.eval();
+            var r = right.eval();
+            switch (op){
+                case "+":
+                    return l + r;
+                case "*":
+                    return l * r;
+                case "/":
+                    return l / r;
+                case "<":
+                    return l < r ? 1 : 0;
+                default:
+                    throw new CompilerException.SemanticException(
+                            "Unknown operator: '" + op + "'", this.position
+                    );
+            }
+        }
         @Override
         public String toString() {
             return "(" + op + ",(" + left + "),(" + right + "))";
@@ -103,6 +137,13 @@ public abstract class ASTNodes {
             }
             sb.append("]");
             return sb.toString();
+        }
+
+        @Override
+        public void execute() throws Exception{
+            for (StatementNode statement : statements) {
+                statement.execute();
+            }
         }
     }
 
@@ -135,27 +176,47 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public IntNode(int value) { this.value = value; }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitInt(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitInt(this); }
+
         @Override
         public String toString() { return String.valueOf(value); }
+
+        @Override
+        public double eval() throws Exception{
+            return Integer.valueOf(value);
+        }
     }
 
     public static class DoubleNode extends ExprNode{
         public double value;
         public Position position;
+
         public DoubleNode(double value, Position position) {
             this.value = value;
             this.position = position;
         }
+
+        public DoubleNode(double value) { this.value = value; }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitDouble(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitDouble(this); }
+
         @Override
         public String toString() { return String.valueOf(value); }
+
+        @Override
+        public double eval() throws Exception{
+            return Double.valueOf(value);
+        }
     }
 
     public static class IdNode extends ExprNode{
@@ -166,12 +227,22 @@ public abstract class ASTNodes {
             this.name = name;
             this.position = position;
         }
+
+        public IdNode(String name) { this.name = name; }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitId(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitId(this); }
+
         @Override
         public String toString() { return name; }
+
+        @Override
+        public double eval() throws Exception{
+            return varValues.get(name);
+        }
     }
 
     public static class AssignNode extends StatementNode{
@@ -185,13 +256,25 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public AssignNode(IdNode id,ExprNode expr) {
+            this.expr = expr;
+            this.id = id;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitAssign(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitAssign(this); }
+
         @Override
         public String toString() {
             return "((" + expr + "),(" + id + "))";
+        }
+
+        @Override
+        public void execute() throws Exception{
+            varValues.put(id.name, expr.eval());
         }
     }
 
@@ -206,13 +289,26 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public AssignPlusNode(IdNode id, ExprNode expr) {
+            this.id = id;
+            this.expr = expr;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitAssignPlus(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitAssignPlus(this); }
+
         @Override
         public String toString() {
             return "((+=,(" + expr + "),(" + id + ")))";
+        }
+
+        @Override
+        public void execute() throws Exception{
+            var curr = varValues.get(id.name);
+            varValues.put(id.name, curr + expr.eval());
         }
     }
 
@@ -229,10 +325,18 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public IfNode(ExprNode cond, StatementNode then, StatementNode elseif) {
+            this.cond = cond;
+            this.then = then;
+            this.elseif = elseif;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitIf(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitIf(this); }
+
         @Override
         public String toString() {
             if (elseif != null) {
@@ -240,6 +344,14 @@ public abstract class ASTNodes {
             } else {
                 return "(if,(" + cond + "),(" + then + "))";
             }
+        }
+
+        @Override
+        public void execute() throws Exception{
+            if(cond.eval() > 0)
+                then.execute();
+            else if(elseif != null)
+                elseif.execute();
         }
     }
 
@@ -254,13 +366,27 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public WhileNode(ExprNode cond, StatementNode stat) {
+            this.cond = cond;
+            this.stat = stat;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitWhile(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitWhile(this); }
+
         @Override
         public String toString() {
             return "((" + stat + "),(" + cond + "))";
+        }
+
+        @Override
+        public void execute() throws Exception{
+            while (cond.eval() > 0){
+                stat.execute();
+            }
         }
     }
 
@@ -275,13 +401,27 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public ProcCallNode(IdNode name, ExprListNode pars) {
+            this.name = name;
+            this.pars = pars;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitProcCall(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitProcCall(this); }
+
         @Override
         public String toString() {
             return "((" + pars + "),(" + name + "))";
+        }
+
+        @Override
+        public void execute() throws Exception{
+            if(name.name.equals("print")) {
+                System.out.println(pars.lst.get(0).eval());
+            }
         }
     }
 
@@ -296,11 +436,23 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
+        public FuncCallNode(IdNode name, ExprListNode pars) {
+            this.name = name;
+            this.pars = pars;
+        }
+
         @Override
         public <T> T visit(IVisitor<T> v){ return v.visitFuncCall(this); }
+
         @Override
         public void visit(IVisitorP v){ v.visitFuncCall(this); }
+
         @Override
         public String toString() { return "((" + pars + "),(" + name + "))"; }
+
+        @Override
+        public double eval() throws Exception{
+            return 0;
+        }
     }
 }
