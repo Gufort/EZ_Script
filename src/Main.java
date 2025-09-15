@@ -58,7 +58,28 @@ public class Main {
             e.printStackTrace();
         }
     }
+
+    public static void fourthTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if(i == 1){ Print(sum) }";
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            var pp = new PrettyPrinterFirst();
+            System.out.println(progr.visit(pp));
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.lines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Parser error:", e, lex.lines());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        thirdTest();
+        fourthTest();
     }
 }
