@@ -78,7 +78,7 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         StringBuilder res = new StringBuilder();
         res.append(ind()).append("if").append("(").append(node.cond.visit(this)).append(")").append('\n').append('{').append(indInc()).append('\n').append(node.then.visit(this)).append(indDec()).append('\n').append('}').append('\n');
         if(node.elseif != null){
-            res.append(ind()).append("else").append('{').append('\n').append(indInc()).append(node.elseif.visit(this))
+            res.append(ind()).append("else").append('\n').append('{').append(indInc()).append('\n').append(node.elseif.visit(this))
                     .append(indDec()).append('\n').append('}');
         }
         return res.toString();
