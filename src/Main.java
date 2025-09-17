@@ -63,7 +63,8 @@ public class Main {
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<100000000) {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
-                "if(i == 1){ Print(sum) }";
+                "if(i == 1){ Print(sum) }"
+                +"else { Print(52) }";
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
@@ -79,7 +80,33 @@ public class Main {
         }
     }
 
+    public static void fifthTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if(i == 1){ Print(sum) } "
+                +"else { Print(52) }";
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            var pp = new PrettyPrinterSecond();
+            System.out.println(progr.visit(pp));
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.lines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Parser error:", e, lex.lines());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
+        System.out.println("\n");
+        System.out.println("======> Что-то похожее на с# <======");
         fourthTest();
+        System.out.println("\n");
+        System.out.println("======> Pascal + Python <======");
+        fifthTest();
     }
 }
