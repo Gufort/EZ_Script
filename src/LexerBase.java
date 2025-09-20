@@ -1,6 +1,6 @@
 import java.util.regex.Pattern;
 
-public class LexerBase{
+public class LexerBase {
     public String code;//Код программы, который анализируется в конструкторе
     public int line = 1;//Текущая строка
     public int column = 0;//Текущий столбец
@@ -11,6 +11,13 @@ public class LexerBase{
     public Position getCurrentPosition() { return new Position(line, column); }
     public boolean isAtEnd() {return currentPosition >= code.length(); }
     public char peekChar(){ return isAtEnd() ? '\0' : code.charAt(currentPosition); }
+    public void startToken(){ start = currentPosition; }
+    public boolean isWhitespace(char ch){  return ch == '\r' || ch == '\7' || ch == ' ' || ch == '\n' || ch == '\t'; }
+    public String getTokenText(){ return code.substring(start, currentPosition); }
+    public void skipWhitespace(){
+        while(isWhitespace(peekChar()) && !isAtEnd())
+            nextChar();
+    }
 
     //Возвращает текущий символ и переходит к следующему
     public char nextChar(){
@@ -52,8 +59,39 @@ public class LexerBase{
         return isAlpha(c) || Character.isDigit(c);
     }
 
-    //Разделить код на строки
-    public String[] lines() { return code.split("\n"); }
+    public String readNumber(){
+        startToken();
+        while(Character.isDigit(peekChar()))
+            nextChar();
+        if(peekChar() == '.' && Character.isDigit(peekNextChar())){
+            nextChar();
+            while(Character.isDigit(peekChar()))
+                nextChar();
+        }
+        return getTokenText();
+    }
+
+    public String readIdentifier(){
+        startToken();
+        if(isAlpha(peekChar())){
+            nextChar();
+            while(isAlphaNumeric(peekChar()))
+                nextChar();
+        }
+        return getTokenText();
+    }
+
+    public String readString() throws Exception{
+        var quoteChar = '"';
+        startToken();
+        if(isMatch(quoteChar)){
+            while(peekChar() != quoteChar && !isAtEnd())
+                nextChar();
+            if(!isMatch(quoteChar))
+                CompilerException.lexerError("Незавершенная строковая константа", getCurrentPosition());
+        }
+        return getTokenText();
+    }
 
     public LexerBase(String code) {
         this.code = code;

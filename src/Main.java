@@ -22,10 +22,10 @@ public class Main {
             System.out.println(progr);
         }
         catch (CompilerException.LexerException e) {
-            CompilerException.outputError("Lexer error:", e, lex.lines());
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.lines());
+            CompilerException.outputError("Parser error:", e, lex.getLines());
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -49,10 +49,10 @@ public class Main {
             System.out.println(progr + "\n" + (end - start)/1000 + " c");
         }
         catch (CompilerException.LexerException e) {
-            CompilerException.outputError("Lexer error:", e, lex.lines());
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.lines());
+            CompilerException.outputError("Parser error:", e, lex.getLines());
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -73,10 +73,10 @@ public class Main {
             System.out.println(progr.visit(pp));
         }
         catch (CompilerException.LexerException e) {
-            CompilerException.outputError("Lexer error:", e, lex.lines());
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.lines());
+            CompilerException.outputError("Parser error:", e, lex.getLines());
         }
     }
 
@@ -94,10 +94,10 @@ public class Main {
             System.out.println(progr.visit(pp));
         }
         catch (CompilerException.LexerException e) {
-            CompilerException.outputError("Lexer error:", e, lex.lines());
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.lines());
+            CompilerException.outputError("Parser error:", e, lex.getLines());
         }
     }
 
