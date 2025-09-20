@@ -1,28 +1,33 @@
 import java.util.Arrays;
 
-public class ParserBase {
-    public LexerUnit.Lexer lexer;
-    protected LexerUnit.Token currentToken;
+public abstract class ParserBase {
+    protected ILexer<LexerUnit.TokenType> lexer;
+    protected TokenT<LexerUnit.TokenType> currentToken;
+    protected int current = 0;
 
-    public ParserBase(LexerUnit.Lexer lexer) throws Exception{
+    public ParserBase(ILexer<LexerUnit.TokenType> lexer) throws Exception{
         this.lexer = lexer;
-        advance();
+        nextLexem();
     }
 
-    public LexerUnit.Token peekToken() { return currentToken; }
-    public LexerUnit.Token CurrentToken() { return currentToken; }
+    public TokenT<LexerUnit.TokenType> peekToken() { return currentToken; }
+    public TokenT<LexerUnit.TokenType> CurrentToken() { return currentToken; }
     public boolean isAtEnd() { return peekToken().type == LexerUnit.TokenType.EOF; }
 
     //Вернуть текущий токен и перейти к следующему
-    public LexerUnit.Token advance() throws Exception {
+    public TokenT<LexerUnit.TokenType> nextLexem() throws Exception {
         var tmp = currentToken;
         currentToken = lexer.nextToken();
         return tmp;
     }
 
     //Проверяем, что тип текущего токена совпадает с одним из данных типов
-    public boolean at(LexerUnit.TokenType... types) throws Exception {
-        return Arrays.stream(types).anyMatch(t -> peekToken().type == t);
+    public boolean at(LexerUnit.TokenType... types) {
+        if (currentToken == null) return false;
+        for (LexerUnit.TokenType type : types) {
+            if (currentToken.type == type) return true;
+        }
+        return false;
     }
 
     public void check(LexerUnit.TokenType... types) throws Exception {
@@ -39,7 +44,7 @@ public class ParserBase {
     // В случае успеха перейти к следующему токену
     public boolean isMatch(LexerUnit.TokenType... types) throws Exception {
         if(at(types)){
-            advance();
+            nextLexem();
             return true;
         }
         return false;
@@ -47,9 +52,9 @@ public class ParserBase {
 
     // Проверить на соответствие и вернуть токен или выбросить ошибку
     // В отличие от At в случае неуспеха бросает ошибку
-    public LexerUnit.Token requires(LexerUnit.TokenType... types) throws Exception {
+    public TokenT<LexerUnit.TokenType> requires(LexerUnit.TokenType... types) throws Exception {
         if(at(types)){
-            return advance();
+            return nextLexem();
         }
         else ExpectedError(types);
         return null;

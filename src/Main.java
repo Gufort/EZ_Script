@@ -11,9 +11,11 @@ public class Main {
     }
 
     public static void secondTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100000000; \n" +
-                "while (i<100000000) { sum += 1/i; i += 1 }; \n" +
-                "Print(sum)";
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if(i == 1) then { Print(sum) }"
+                +"else { Print(52) }";
 
         var lex = new LexerUnit.Lexer(text);
         try {
@@ -33,9 +35,11 @@ public class Main {
     }
 
     public static void thirdTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100000000; \n" +
-                "while (i<100000000) { sum += 1/i; i += 1 }; \n" +
-                "Print(sum)";
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) }";
 
         var lex = new LexerUnit.Lexer(text);
         try {
@@ -61,9 +65,9 @@ public class Main {
 
     public static void fourthTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
-                "while (i<100000000) {sum += 1/i; i += 1} ;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
-                "if(i == 1){ Print(sum) }"
+                "if(i == 1) then { Print(sum) }"
                 +"else { Print(52) }";
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -82,9 +86,9 @@ public class Main {
 
     public static void fifthTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
-                "while (i<100000000) {sum += 1/i; i += 1} ;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
-                "if(i == 1){ Print(sum) } "
+                "if(i == 1) then { Print(sum) } "
                 +"else { Print(52) }";
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -102,6 +106,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
+        thirdTest();
         System.out.println("\n");
         System.out.println("======> Что-то похожее на с# <======");
         fourthTest();

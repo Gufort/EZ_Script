@@ -22,7 +22,7 @@ public class LexerUnit {
         KeyWords.put("while", TokenType.WHILE);
         KeyWords.put("else", TokenType.ELSE);
         KeyWords.put("do", TokenType.DO);
-        KeyWords.put("THEN", TokenType.THEN);
+        KeyWords.put("then", TokenType.THEN);
     }
 
 

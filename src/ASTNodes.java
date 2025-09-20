@@ -81,12 +81,6 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
-        public BinOpNode(ExprNode left, ExprNode right, String op) {
-            this.left = left;
-            this.right = right;
-            this.op = op;
-        }
-
         @Override
         public <T> T visit(IVisitor<T> v){return v.visitBinOp(this); };
         @Override
@@ -105,6 +99,8 @@ public abstract class ASTNodes {
                     return l / r;
                 case "<":
                     return l < r ? 1 : 0;
+                case "==":
+                    return l == r ? 1 : 0;
                 default:
                     throw new CompilerException.SemanticException(
                             "Unknown operator: '" + op + "'", this.position

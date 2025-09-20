@@ -1,23 +1,52 @@
-public class Parser extends ParserBase{
-    public Parser(LexerUnit.Lexer lexer) throws Exception{
+public class Parser extends ParserBase {
+    public Parser(LexerUnit.Lexer lexer) throws Exception {
         super(lexer);
     }
 
     /// Program := StatementList
-    public ASTNodes.StatementNode mainProgram() throws Exception{
+    public ASTNodes.StatementNode mainProgram() throws Exception {
+        current = 0;
         var res = statementList();
         requires(LexerUnit.TokenType.EOF);
         return res;
     }
 
     /// StatementList := Statement (';' Statement)*
-    public ASTNodes.StatementNode statementList() throws Exception{
+    public ASTNodes.StatementNode statementList() throws Exception {
         var res = new ASTNodes.StatementListNode();
         res.add(statement());
-        while(isMatch(LexerUnit.TokenType.SEMICOLON)){
+        while (isMatch(LexerUnit.TokenType.SEMICOLON)) {
             res.add(statement());
         }
         return res;
+    }
+
+    public ASTNodes.StatementNode ifStatement() throws Exception {
+        var pos = CurrentToken().position;
+        requires(LexerUnit.TokenType.IF);
+        var cond = expr();
+        requires(LexerUnit.TokenType.THEN);
+        var thenStatement = statement();
+        var elseStatement = isMatch(LexerUnit.TokenType.ELSE) ? statement() : null;
+        return new ASTNodes.IfNode(cond, thenStatement, elseStatement, pos);
+    }
+
+    public ASTNodes.StatementNode whileStatement() throws Exception {
+        var pos = CurrentToken().position;
+        requires(LexerUnit.TokenType.WHILE);
+        var cond = expr();
+        requires(LexerUnit.TokenType.DO);
+        var statement = statement();
+        return new ASTNodes.WhileNode(cond, statement, pos);
+    }
+
+    public ASTNodes.StatementNode blockStatement() throws Exception {
+        var pos = CurrentToken().position;
+        requires(LexerUnit.TokenType.LEFT_BRACE);
+        var stl = statementList();
+        requires(LexerUnit.TokenType.RIGHT_BRACE);
+        stl.position = pos;
+        return stl;
     }
 
     /// id = expr
@@ -26,119 +55,98 @@ public class Parser extends ParserBase{
     /// if expr then stat [else stat]
     /// while expr do stat
     /// { statlist }
-    public ASTNodes.StatementNode statement() throws Exception{
-        var position = currentToken.position;
-        check(LexerUnit.TokenType.ID, LexerUnit.TokenType.IF, LexerUnit.TokenType.WHILE, LexerUnit.TokenType.LEFT_BRACE);
-        if(isMatch(LexerUnit.TokenType.IF)){
-            requires(LexerUnit.TokenType.LEFT_PAREN);
-            var condition = expr();
-            requires(LexerUnit.TokenType.RIGHT_PAREN);
-            var thenstat = statement();
-            var elsestat = (isMatch(LexerUnit.TokenType.ELSE)) ? statement() : null;
-            return new ASTNodes.IfNode(condition, thenstat, elsestat, position);
-        }
-
-        else if(isMatch(LexerUnit.TokenType.WHILE)){
-            requires(LexerUnit.TokenType.LEFT_PAREN);
-            var condition = expr();
-            requires(LexerUnit.TokenType.RIGHT_PAREN);
-            var statement = statement();
-            return new ASTNodes.WhileNode(condition, statement, position);
-        }
-
-        else if(isMatch(LexerUnit.TokenType.LEFT_BRACE)){
-            var statement = statementList();
-            requires(LexerUnit.TokenType.RIGHT_BRACE);
-            statement.setPos(position);
-            return statement;
-        }
-
-        else{
+    public ASTNodes.StatementNode statement() throws Exception {
+        var pos = CurrentToken().position;
+        if (at(LexerUnit.TokenType.IF))
+            return ifStatement();
+        else if (at(LexerUnit.TokenType.WHILE))
+            return whileStatement();
+        else if (at(LexerUnit.TokenType.LEFT_BRACE))
+            return blockStatement();
+        else if (at(LexerUnit.TokenType.ID)) {
             var id = ident();
-            if(isMatch(LexerUnit.TokenType.ASSIGN)){
-                var expr = expr();
-                return new ASTNodes.AssignNode(id, expr, position);
-            }
-
-            if(isMatch(LexerUnit.TokenType.ASSIGNPLUS)){
-                var expr = expr();
-                return new ASTNodes.AssignPlusNode(id, expr, position);
-            }
-
-            else if(isMatch(LexerUnit.TokenType.LEFT_PAREN)){
-                var exprlist = exprList();
-                requires(LexerUnit.TokenType.RIGHT_PAREN);
-                return new ASTNodes.ProcCallNode(id, exprlist, position);
-            }
-
-            else ExpectedError(LexerUnit.TokenType.ASSIGNPLUS, LexerUnit.TokenType.ASSIGN, LexerUnit.TokenType.LEFT_PAREN);
-        }
+            if (at(LexerUnit.TokenType.ASSIGNPLUS, LexerUnit.TokenType.ASSIGN))
+                return parseAssignment(id, pos);
+            else if (at(LexerUnit.TokenType.LEFT_PAREN))
+                return parseProcedureCall(id, pos);
+            else
+                ExpectedError(LexerUnit.TokenType.ASSIGN, LexerUnit.TokenType.LEFT_PAREN);
+        } else
+            ExpectedError(LexerUnit.TokenType.ID, LexerUnit.TokenType.IF, LexerUnit.TokenType.WHILE, LexerUnit.TokenType.LEFT_BRACE);
         return null;
     }
 
-    public ASTNodes.ExprNode expr() throws Exception{
+    public ASTNodes.ExprNode expr() throws Exception {
         var expr = comp();
-        while(at(LexerUnit.TokenType.LESS, LexerUnit.TokenType.GREATER,
+        while (at(LexerUnit.TokenType.LESS, LexerUnit.TokenType.GREATER,
                 LexerUnit.TokenType.GREATEREQUAL, LexerUnit.TokenType.LESSEQUAL,
-                LexerUnit.TokenType.EQUAL, LexerUnit.TokenType.NOTEQUAL)){
-            var op = advance();
+                LexerUnit.TokenType.EQUAL, LexerUnit.TokenType.NOTEQUAL)) {
+            var op = nextLexem();
             var right = comp();
-            expr = new ASTNodes.BinOpNode(expr, right, op.value.toString(), expr.position);
+            expr = createBinaryOperation(expr, right, op);
         }
         return expr;
     }
 
-    public ASTNodes.IdNode ident() throws Exception{
+    public ASTNodes.IdNode ident() throws Exception {
         var id = requires(LexerUnit.TokenType.ID);
         return new ASTNodes.IdNode(id.value.toString(), id.position);
     }
 
-    public ASTNodes.ExprListNode exprList() throws Exception{
+    public ASTNodes.ExprListNode exprList() throws Exception {
         var exprList = new ASTNodes.ExprListNode();
         exprList.add(expr());
-        while(isMatch(LexerUnit.TokenType.COMMA)){
+        while (isMatch(LexerUnit.TokenType.COMMA)) {
             exprList.add(expr());
         }
         return exprList;
     }
 
-    public ASTNodes.ExprNode comp() throws Exception{
+    public ASTNodes.ExprNode comp() throws Exception {
+        if (isAtEnd()) return null;
         var expr = term();
-        while(at(LexerUnit.TokenType.PLUS, LexerUnit.TokenType.MINUS, LexerUnit.TokenType.OR)){
-            var op = advance();
+        while (at(LexerUnit.TokenType.PLUS, LexerUnit.TokenType.MINUS, LexerUnit.TokenType.OR)) {
+            var op = nextLexem();
             var right = term();
-            expr = new ASTNodes.BinOpNode(expr, right, op.value.toString(), expr.position);
+            expr = createBinaryOperation(expr, right, op);
         }
         return expr;
     }
 
-    public ASTNodes.ExprNode term() throws Exception{
+    public ASTNodes.ExprNode term() throws Exception {
         var expr = factor();
-        while(at(LexerUnit.TokenType.MULTIPLE, LexerUnit.TokenType.DIVIDE, LexerUnit.TokenType.AND)){
-            var op = advance();
+        while (at(LexerUnit.TokenType.MULTIPLE, LexerUnit.TokenType.DIVIDE, LexerUnit.TokenType.AND)) {
+            var op = nextLexem();
             var right = factor();
-            expr = new ASTNodes.BinOpNode(expr, right, op.value.toString(), expr.position);
+            expr = createBinaryOperation(expr, right, op);
         }
         return expr;
     }
 
-    public ASTNodes.ExprNode factor() throws Exception{
+    public ASTNodes.ExprNode factor() throws Exception {
         var position = currentToken.position;
-        if(at(LexerUnit.TokenType.INT))
-            return new ASTNodes.IntNode(Integer.parseInt(advance().value.toString()), position);
 
-        else if(at(LexerUnit.TokenType.DOUBLELITERAL))
-            return new ASTNodes.DoubleNode(Double.parseDouble(advance().value.toString()), position);
+        if (currentToken == null || isAtEnd()) {
+            CompilerException.syntaxError("Unexpected end of file", position);
+            return null;
+        }
 
-        else if(at(LexerUnit.TokenType.LEFT_PAREN)){
+        if (at(LexerUnit.TokenType.INT))
+            return new ASTNodes.IntNode(Integer.parseInt(nextLexem().value.toString()), position);
+
+        else if (at(LexerUnit.TokenType.DOUBLELITERAL))
+            return new ASTNodes.DoubleNode(Double.parseDouble(nextLexem().value.toString()), position);
+
+        else if (at(LexerUnit.TokenType.LEFT_PAREN)) {
+            nextLexem();
             var res = expr();
             requires(LexerUnit.TokenType.RIGHT_PAREN);
             return res;
         }
 
-        else if(at(LexerUnit.TokenType.ID)){
+        else if (at(LexerUnit.TokenType.ID)) {
             var id = ident();
-            if(isMatch(LexerUnit.TokenType.LEFT_PAREN)){
+            if (isMatch(LexerUnit.TokenType.LEFT_PAREN)) {
                 var exprlst = exprList();
                 var res = new ASTNodes.FuncCallNode(id, exprlst, position);
                 requires(LexerUnit.TokenType.RIGHT_PAREN);
@@ -147,8 +155,32 @@ public class Parser extends ParserBase{
             return id;
         }
 
-        else CompilerException.syntaxError("Exception INT or '(' or id but " + peekToken().type.toString() + " found.", peekToken().position);
+        else
+            CompilerException.syntaxError("Exc" + peekToken().type.toString() + " найдено.", peekToken().position);
         return null;
+    }
+
+    private ASTNodes.StatementNode parseAssignment(ASTNodes.IdNode id, Position pos) throws Exception {
+        if (isMatch(LexerUnit.TokenType.ASSIGN)) {
+            var expr = expr();
+            return new ASTNodes.AssignNode(id, expr, pos);
+        } else if (isMatch(LexerUnit.TokenType.ASSIGNPLUS)) {
+            var expr = expr();
+            return new ASTNodes.AssignPlusNode(id, expr, pos);
+        } else
+            ExpectedError(LexerUnit.TokenType.ASSIGN, LexerUnit.TokenType.ASSIGNPLUS);
+        return null;
+    }
+
+    private ASTNodes.StatementNode parseProcedureCall(ASTNodes.IdNode id, Position pos) throws Exception {
+        requires(LexerUnit.TokenType.LEFT_PAREN);
+        var expr = exprList();
+        requires(LexerUnit.TokenType.RIGHT_PAREN);
+        return new ASTNodes.ProcCallNode(id, expr, pos);
+    }
+
+    private ASTNodes.BinOpNode createBinaryOperation(ASTNodes.ExprNode left, ASTNodes.ExprNode right, TokenT<LexerUnit.TokenType> op) throws Exception {
+        return new ASTNodes.BinOpNode(left, right, op.value.toString(), left.position);
     }
 }
 /*Program := StatementList
