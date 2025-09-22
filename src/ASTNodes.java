@@ -6,11 +6,11 @@ public abstract class ASTNodes {
 
     public static Dictionary<String, Double> varValues = new Hashtable<String, Double>();
 
-    public enum operationType{opPlus, opMinus, opMultiply, opDivide,
+    public enum OperationType{opPlus, opMinus, opMultiply, opDivide,
     opEqual, opLess, opLessEqual, opGreater, opGreaterEqual, opNotEqual,
     opAnd, opOr, opNot, opBad};
 
-    public Dictionary<operationType, String> operationToStr = new Hashtable<operationType, String>();
+    public Dictionary<OperationType, String> operationToStr = new Hashtable<OperationType, String>();
 
     interface IVisitor<T>{
         T visitNode(Node bin);
@@ -59,8 +59,6 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){ return v.visitExprNode(this); };
         @Override
         public void visitP(IVisitorP v){ v.visitExprNode(this); }
-
-        public abstract double eval() throws Exception;
     }
 
     public static abstract class StatementNode extends Node{
@@ -72,15 +70,14 @@ public abstract class ASTNodes {
         public void setPos(Position pos){
             position = pos;
         }
-        public abstract void execute() throws Exception;
     }
 
     public static class BinOpNode extends ExprNode{
         public ExprNode left;
         public ExprNode right;
-        public String op;
+        public OperationType op;
 
-        public BinOpNode(ExprNode left, ExprNode right, String op, Position position) {
+        public BinOpNode(ExprNode left, ExprNode right, OperationType op, Position position) {
             this.left = left;
             this.right = right;
             this.op = op;
@@ -91,28 +88,6 @@ public abstract class ASTNodes {
         public <T> T visit(IVisitor<T> v){return v.visitBinOp(this); };
         @Override
         public void visitP(IVisitorP v){ v.visitBinOp(this); }
-
-        @Override
-        public double eval() throws Exception{
-            var l = left.eval();
-            var r = right.eval();
-            switch (op){
-                case "+":
-                    return l + r;
-                case "*":
-                    return l * r;
-                case "/":
-                    return l / r;
-                case "<":
-                    return l < r ? 1 : 0;
-                case "==":
-                    return l == r ? 1 : 0;
-                default:
-                    throw new CompilerException.SemanticException(
-                            "Unknown operator: '" + op + "'", this.position
-                    );
-            }
-        }
         @Override
         public String toString() {
             return "(" + op + ",(" + left + "),(" + right + "))";
@@ -137,13 +112,6 @@ public abstract class ASTNodes {
             }
             sb.append("]");
             return sb.toString();
-        }
-
-        @Override
-        public void execute() throws Exception{
-            for (StatementNode statement : statements) {
-                statement.execute();
-            }
         }
     }
 
@@ -186,11 +154,6 @@ public abstract class ASTNodes {
 
         @Override
         public String toString() { return String.valueOf(value); }
-
-        @Override
-        public double eval() throws Exception{
-            return Integer.valueOf(value);
-        }
     }
 
     public static class DoubleNode extends ExprNode{
@@ -212,11 +175,6 @@ public abstract class ASTNodes {
 
         @Override
         public String toString() { return String.valueOf(value); }
-
-        @Override
-        public double eval() throws Exception{
-            return Double.valueOf(value);
-        }
     }
 
     public static class IdNode extends ExprNode{
@@ -238,11 +196,6 @@ public abstract class ASTNodes {
 
         @Override
         public String toString() { return name; }
-
-        @Override
-        public double eval() throws Exception{
-            return varValues.get(name);
-        }
     }
 
     public static class AssignNode extends StatementNode{
@@ -263,11 +216,6 @@ public abstract class ASTNodes {
         @Override
         public String toString() {
             return "((" + expr + "),(" + id + "))";
-        }
-
-        @Override
-        public void execute() throws Exception{
-            varValues.put(id.name, expr.eval());
         }
     }
 
@@ -291,12 +239,6 @@ public abstract class ASTNodes {
         @Override
         public String toString() {
             return "((+=,(" + expr + "),(" + id + ")))";
-        }
-
-        @Override
-        public void execute() throws Exception{
-            var curr = varValues.get(id.name);
-            varValues.put(id.name, curr + expr.eval());
         }
     }
 
@@ -326,14 +268,6 @@ public abstract class ASTNodes {
                 return "(if,(" + cond + "),(" + then + "))";
             }
         }
-
-        @Override
-        public void execute() throws Exception{
-            if(cond.eval() > 0)
-                then.execute();
-            else if(elseif != null)
-                elseif.execute();
-        }
     }
 
     public static class WhileNode extends StatementNode{
@@ -355,13 +289,6 @@ public abstract class ASTNodes {
         @Override
         public String toString() {
             return "((" + stat + "),(" + cond + "))";
-        }
-
-        @Override
-        public void execute() throws Exception{
-            while (cond.eval() > 0){
-                stat.execute();
-            }
         }
     }
 
@@ -386,13 +313,6 @@ public abstract class ASTNodes {
         public String toString() {
             return "((" + pars + "),(" + name + "))";
         }
-
-        @Override
-        public void execute() throws Exception{
-            if(name.name.equals("print")) {
-                System.out.println(pars.lst.get(0).eval());
-            }
-        }
     }
 
     public static class FuncCallNode extends ExprNode{
@@ -413,10 +333,5 @@ public abstract class ASTNodes {
 
         @Override
         public String toString() { return "((" + pars + "),(" + name + "))"; }
-
-        @Override
-        public double eval() throws Exception{
-            return 0;
-        }
     }
 }
