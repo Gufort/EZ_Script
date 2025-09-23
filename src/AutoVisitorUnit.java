@@ -4,41 +4,41 @@ public class AutoVisitorUnit implements ASTNodes.IVisitorP {
     @Override public void visitStatementNode(ASTNodes.StatementNode node){}
     @Override public void visitInt(ASTNodes.IntNode node){}
     @Override public void visitDouble(ASTNodes.DoubleNode node){}
-    @Override public void visitId(ASTNodes.IdNode node){}
-    @Override public void visitBinOp(ASTNodes.BinOpNode node){
+    @Override public void visitId(ASTNodes.IdNode node) throws Exception{}
+    @Override public void visitBinOp(ASTNodes.BinOpNode node) throws Exception{
         node.left.visitP(this);
         node.right.visitP(this);
     }
-    @Override public void visitStatementList(ASTNodes.StatementListNode stl){
+    @Override public void visitStatementList(ASTNodes.StatementListNode stl) throws Exception {
         for(var curr: stl.statements)
             curr.visitP(this);
     }
-    @Override public void visitExprList(ASTNodes.ExprListNode el){
+    @Override public void visitExprList(ASTNodes.ExprListNode el) throws Exception {
         for(var curr: el.lst)
             curr.visitP(this);
     }
-    @Override public void visitAssign(ASTNodes.AssignNode node){
+    @Override public void visitAssign (ASTNodes.AssignNode node) throws Exception{
         node.expr.visitP(this);
         node.id.visitP(this);
     }
-    @Override public void visitAssignPlus(ASTNodes.AssignPlusNode node){
+    @Override public void visitAssignPlus(ASTNodes.AssignPlusNode node) throws Exception{
         node.expr.visitP(this);
         node.id.visitP(this);
     }
-    @Override public void visitIf(ASTNodes.IfNode node){
+    @Override public void visitIf(ASTNodes.IfNode node) throws Exception{
         node.cond.visitP(this);
         node.then.visitP(this);
         if(node.elseif != null)
             node.elseif.visitP(this);
     }
-    @Override public void visitWhile(ASTNodes.WhileNode node){
+    @Override public void visitWhile(ASTNodes.WhileNode node) throws Exception{
         node.cond.visitP(this);
         node.stat.visitP(this);
     }
-    @Override public void visitProcCall(ASTNodes.ProcCallNode node){
+    @Override public void visitProcCall(ASTNodes.ProcCallNode node) throws Exception{
         node.pars.visitP(this);
     }
-    @Override public void visitFuncCall(ASTNodes.FuncCallNode node){
+    @Override public void visitFuncCall(ASTNodes.FuncCallNode node) throws Exception{
         node.pars.visitP(this);
     }
 }

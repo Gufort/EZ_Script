@@ -179,8 +179,27 @@ public class Parser extends ParserBase {
         return new ASTNodes.ProcCallNode(id, expr, pos);
     }
 
+    public static ASTNodes.OperationType tokenToOp(LexerUnit.TokenType token) throws Exception {
+        var res = ASTNodes.OperationType.opBad;
+        switch (token) {
+            case PLUS -> res = ASTNodes.OperationType.opPlus;
+            case MINUS -> res = ASTNodes.OperationType.opMinus;
+            case MULTIPLE -> res = ASTNodes.OperationType.opMultiply;
+            case DIVIDE -> res = ASTNodes.OperationType.opDivide;
+            case AND -> res = ASTNodes.OperationType.opAnd;
+            case OR -> res = ASTNodes.OperationType.opOr;
+            case NOT -> res = ASTNodes.OperationType.opNot;
+            case EQUAL -> res = ASTNodes.OperationType.opEqual;
+            case LESS -> res = ASTNodes.OperationType.opLess;
+            case GREATER -> res = ASTNodes.OperationType.opGreater;
+            case LESSEQUAL -> res = ASTNodes.OperationType.opLessEqual;
+            case GREATEREQUAL -> res = ASTNodes.OperationType.opGreaterEqual;
+        }
+        return res;
+    }
+
     private ASTNodes.BinOpNode createBinaryOperation(ASTNodes.ExprNode left, ASTNodes.ExprNode right, TokenT<LexerUnit.TokenType> op) throws Exception {
-        return new ASTNodes.BinOpNode(left, right, op.value.toString(), left.position);
+        return new ASTNodes.BinOpNode(left, right, tokenToOp(op.type), left.position);
     }
 }
 /*Program := StatementList

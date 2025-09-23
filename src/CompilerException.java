@@ -33,7 +33,7 @@ public class CompilerException{
         throw new SyntaxException(message, position);
     }
 
-    public void semanticError(String message, Position position) throws SemanticException{
+    public static void semanticError(String message, Position position) throws SemanticException{
         throw new SemanticException(message, position);
     }
 

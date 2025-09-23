@@ -27,7 +27,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
     }
     @Override
     public String visitBinOp(ASTNodes.BinOpNode node) {
-        return node.left.visit(this) + " " + node.op + " " + node.right.visit(this);
+        return node.left.visit(this) + " " + ASTNodes.operationToStr.get(node.op) + " " + node.right.visit(this);
     }
     @Override
     public String visitStatementList(ASTNodes.StatementListNode lst) {

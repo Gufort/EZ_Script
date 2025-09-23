@@ -47,7 +47,6 @@ public class Main {
             var progr = par.mainProgram();
 
             var start = System.currentTimeMillis();
-            progr.execute();
             var end = System.currentTimeMillis();
 
             System.out.println(progr + "\n" + (end - start)/1000 + " c");
@@ -105,13 +104,37 @@ public class Main {
         }
     }
 
+    public static void sixthTest() throws Exception{
+        var text = "i = sqrt(1); sum = 0.0; while i<100000000 do {sum += 1/i; i += 1}; print(sum)";
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            var semanticCheck = new SemanticCheck();
+            progr.visitP(semanticCheck);
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Parser error:", e, lex.getLines());
+        }
+        catch (CompilerException.SemanticException e){
+            CompilerException.outputError("Semantic error:", e, lex.getLines());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         thirdTest();
+
         System.out.println("\n");
         System.out.println("======> Что-то похожее на с# <======");
         fourthTest();
         System.out.println("\n");
         System.out.println("======> Pascal + Python <======");
         fifthTest();
+
+        System.out.println();
+        sixthTest();
     }
 }

@@ -8,7 +8,7 @@ public class SymbolTable {
                             StringType, ObjectType, BadType, NoType}
     public enum KindType{VarName, FuncName}
 
-    public class SymbolInfo{
+    public static class SymbolInfo{
         public String name; //Имя символа
         public KindType kindType; //Вид символа - переменная или функция
         public SemanticType semanticType; //Тип переменной
@@ -30,8 +30,12 @@ public class SymbolTable {
     public static SemanticType[] NumTypes = new SemanticType[]{SemanticType.IntType, SemanticType.DoubleType};
     public static Dictionary<String, SymbolInfo> SymTable = new Hashtable<String, SymbolInfo>(){};
 
-    public void initStandardFunctionsTable(){
+    public static void initStandardFunctionsTable(){
         SymTable.put("sqrt", new SymbolInfo("sqrt", KindType.FuncName, SemanticType.DoubleType, SemanticType.DoubleType));
-        SymTable.put("print", new SymbolInfo("print", KindType.VarName, SemanticType.DoubleType, SemanticType.NoType));
+        SymTable.put("print", new SymbolInfo("print", KindType.FuncName, SemanticType.NoType, SemanticType.DoubleType));
+    }
+
+    static {
+        initStandardFunctionsTable();
     }
 }

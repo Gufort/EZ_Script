@@ -1,16 +1,16 @@
 import java.util.Arrays;
 
 public class CalcTypes {
-    public ASTNodes.OperationType[] ArithmeticOperations =
+    public static ASTNodes.OperationType[] ArithmeticOperations =
             new ASTNodes.OperationType[] { ASTNodes.OperationType.opPlus,
             ASTNodes.OperationType.opMinus, ASTNodes.OperationType.opMultiply, ASTNodes.OperationType.opDivide,};
-    public ASTNodes.OperationType[] CompareOperations =
+    public static ASTNodes.OperationType[] CompareOperations =
             new ASTNodes.OperationType[] { ASTNodes.OperationType.opEqual, ASTNodes.OperationType.opLess,
             ASTNodes.OperationType.opLessEqual, ASTNodes.OperationType.opGreater, ASTNodes.OperationType.opGreaterEqual, ASTNodes.OperationType.opNotEqual};
-    public ASTNodes.OperationType[] LogicalOperations =
+    public static ASTNodes.OperationType[] LogicalOperations =
             new ASTNodes.OperationType[]{ ASTNodes.OperationType.opAnd, ASTNodes.OperationType.opOr, ASTNodes.OperationType.opNotEqual};
 
-    public SymbolTable.SemanticType getPureType(ASTNodes.ExprNode expr) {
+    public static SymbolTable.SemanticType getPureType(ASTNodes.ExprNode expr) {
         return switch (expr){
             case ASTNodes.BinOpNode bin -> calcTypeHelper(bin);
             case ASTNodes.IdNode id -> checkSymbolTable(id.name);
@@ -21,14 +21,15 @@ public class CalcTypes {
         };
     }
 
-    private SymbolTable.SemanticType checkSymbolTable(String name) {
-        return SymbolTable.SymTable.get(name) == null?
+
+    public static SymbolTable.SemanticType checkSymbolTable(String name) {
+        return SymbolTable.SymTable.get(name) != null?
                 SymbolTable.SymTable.get(name).semanticType :
                 SymbolTable.SemanticType.BadType;
     }
 
     // Чистая функция для вычисления типа (без семантических проверок)
-    public SymbolTable.SemanticType calcTypeHelper(ASTNodes.BinOpNode node) {
+    public static SymbolTable.SemanticType calcTypeHelper(ASTNodes.BinOpNode node) {
         var leftType = getPureType(node.left);
         var rightType = getPureType(node.right);
 
@@ -50,7 +51,7 @@ public class CalcTypes {
     }
 
     // Функция проверки совместимости типов для операции
-    public boolean areTypesCompatibleForOp(ASTNodes.OperationType op, SymbolTable.SemanticType left, SymbolTable.SemanticType right) {
+    public static boolean areTypesCompatibleForOp(ASTNodes.OperationType op, SymbolTable.SemanticType left, SymbolTable.SemanticType right) {
         if(Arrays.stream(ArithmeticOperations).anyMatch(curr -> curr == op))
             return Arrays.stream(SymbolTable.NumTypes).anyMatch(curr -> curr == left) &&
                     Arrays.stream(SymbolTable.NumTypes).anyMatch(curr -> curr == right);
@@ -62,7 +63,7 @@ public class CalcTypes {
         else return false;
     }
 
-    public boolean assignCompaable(SymbolTable.SemanticType left, SymbolTable.SemanticType right) {
+    public static boolean assignComparable(SymbolTable.SemanticType left, SymbolTable.SemanticType right) {
         if(left == right)
             return true;
         else if(left == SymbolTable.SemanticType.DoubleType && right == SymbolTable.SemanticType.IntType)
