@@ -49,6 +49,25 @@ public class Parser extends ParserBase {
             var statement = statement();
             return new ASTNodes.WhileNode(cond, statement, pos);
         }
+        else if(at(LexerUnit.TokenType.FOR)){
+            nextLexem();
+
+            // Опциональные скобки
+            boolean hasParen = at(LexerUnit.TokenType.LEFT_PAREN);
+            if (hasParen) nextLexem();
+
+            var start = statement();
+            requires(LexerUnit.TokenType.SEMICOLON);
+            var cond = expr();
+            requires(LexerUnit.TokenType.SEMICOLON);
+            var increment = statement();
+
+            if (hasParen) requires(LexerUnit.TokenType.RIGHT_PAREN);
+
+            requires(LexerUnit.TokenType.DO);
+            var body = statement();
+            return new ASTNodes.ForNode(start, cond, increment, body, pos);
+        }
         else if(at(LexerUnit.TokenType.LEFT_BRACE)){
             nextLexem();
             var stl = statementList();
@@ -169,7 +188,7 @@ Assign := Id ('=' | '+=' | '-=' | '*=' | '/=') Expr
 ProcCall := Id '(' ExprList ')
 FuncCall := Id '(' ExprList ')
 WhileStatement := while Expr do Statement
-ForStatement := for ( Assign, Expr, AssignPlus) do {}
+ForStatement := for Assign, Expr, AssignPlus do
 IfStatement := if Expr then Statement [else Statement]
 BlockStatement := '{' StatementList '}'
 Expr := Comp (CompOp Comp)*

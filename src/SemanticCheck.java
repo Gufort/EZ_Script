@@ -91,6 +91,17 @@ public class SemanticCheck extends AutoVisitorUnit {
         node.stat.visitP(this);
     }
 
+    @Override
+    public void visitFor(ASTNodes.ForNode node) throws Exception {
+        node.start.visitP(this);
+        node.condition.visitP(this);
+        var type = CalcTypes.calcTypeVis(node.condition);
+        if(type != SymbolTable.SemanticType.BoolType)
+            CompilerException.semanticError("Ожидалось выражение логического типа, а встречено выражение типа " + type, node.condition.position);
+        node.increment.visitP(this);
+        node.body.visitP(this);
+    }
+
     @Override public void visitId(ASTNodes.IdNode node) throws Exception {
         var ind = SymbolTable.SymTable.get(node.name).index;
         var type = SymbolTable.SymTable.get(node.name).semanticType;

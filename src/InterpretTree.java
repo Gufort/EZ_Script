@@ -497,6 +497,29 @@ public class InterpretTree {
         }
     }
 
+    public static class ForNodeI extends StatementNodeI {
+        public ExprNodeI condition;
+        public StatementNodeI body;
+        public StatementNodeI start;
+        public StatementNodeI increment;
+
+        public ForNodeI(StatementNodeI start, ExprNodeI condition, StatementNodeI increment, StatementNodeI body) {
+            this.start = start;
+            this.condition = condition;
+            this.body = body;
+            this.increment = increment;
+        }
+
+        @Override
+        public void execute() {
+            start.execute();
+            while(condition.evalBool()) {
+                body.execute();
+                increment.execute();
+            }
+        }
+    }
+
     public static class ProcCallNodeI extends StatementNodeI {
         public String name;
         public ExprListNodeI pars;

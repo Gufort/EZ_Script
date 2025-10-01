@@ -4,7 +4,6 @@ public class AutoVisitorUnit implements ASTNodes.IVisitorP {
     @Override public void visitStatementNode(ASTNodes.StatementNode node){}
     @Override public void visitInt(ASTNodes.IntNode node){}
     @Override public void visitDouble(ASTNodes.DoubleNode node){}
-    @Override public void visitFor(ASTNodes.ForNode node) throws Exception{}
     @Override public void visitId(ASTNodes.IdNode node) throws Exception{}
     @Override public void visitBinOp(ASTNodes.BinOpNode node) throws Exception{
         node.left.visitP(this);
@@ -35,6 +34,12 @@ public class AutoVisitorUnit implements ASTNodes.IVisitorP {
     @Override public void visitWhile(ASTNodes.WhileNode node) throws Exception{
         node.cond.visitP(this);
         node.stat.visitP(this);
+    }
+    @Override public void visitFor(ASTNodes.ForNode node) throws Exception{
+        node.start.visitP(this);
+        node.condition.visitP(this);
+        node.body.visitP(this);
+        node.increment.visitP(this);
     }
     @Override public void visitProcCall(ASTNodes.ProcCallNode node) throws Exception{
         node.pars.visitP(this);

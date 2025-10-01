@@ -34,40 +34,44 @@ public class Main {
 //        }
 //    }
 //
-//    public static void thirdTest() throws Exception{
-//        String text = "i = 1; sum = 0; n = 100000000;" +
-//                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
-//                "Print(sum);" +
-//                "if (i == 1) then { Print(sum) }"
-//                +"else { Print(52) }";
-//
-//        var lex = new LexerUnit.Lexer(text);
-//        try {
-//            var par = new Parser(lex);
-//            var progr = par.mainProgram();
-//
-//            var start = System.currentTimeMillis();
-//            var end = System.currentTimeMillis();
-//
-//            System.out.println(progr + "\n" + (end - start)/1000 + " c");
-//        }
-//        catch (CompilerException.LexerException e) {
-//            CompilerException.outputError("Lexer error:", e, lex.getLines());
-//        }
-//        catch (CompilerException.SyntaxException e) {
-//            CompilerException.outputError("Parser error:", e, lex.getLines());
-//        }
-//        catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-//
-    public static void fourthTest() throws Exception{
-        String text = "i = 2.0; sum = 0.0; n = 100000000;" +
-                "while (i<n) do {sum += 1/i; i += 1.0} ;" +
+    public static void thirdTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
-                "if(i == 1) then { Print(sum) }"
-                +"else { Print(52) }";
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"for(d = 0; d < 5; d += 1) do { Print(4) }";
+
+        var lex = new LexerUnit.Lexer(text);
+        try {
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            progr.visitP(new SemanticCheck());
+            var start = System.currentTimeMillis();
+            var end = System.currentTimeMillis();
+            var pp = new PrettyPrinterFirst();
+            System.out.println(progr.visit(pp));
+            //System.out.println(progr + "\n" + (end - start)/1000 + " c");
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Parser error:", e, lex.getLines());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void fourthTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<n) do {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"for(d = 0; d < 5; d += 1) do { sum = 1 }";
+
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
@@ -132,7 +136,9 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         //secondTest();
-        //thirdTest();
+
+        System.out.println("======> Без InterpretTree <======");
+        thirdTest();
 
         System.out.println("\n");
         System.out.println("======> Что-то похожее на с# <======");

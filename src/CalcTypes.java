@@ -82,7 +82,7 @@ public class CalcTypes {
         }
         @Override
         public SymbolTable.SemanticType visitFor(ASTNodes.ForNode forn) throws Exception {
-            return null;
+            return SymbolTable.SemanticType.NoType;
         }
         @Override public SymbolTable.SemanticType visitProcCall(ASTNodes.ProcCallNode node) throws Exception{
             if(SymbolTable.SymTable.get(node.name) == null)

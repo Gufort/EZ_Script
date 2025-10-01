@@ -70,6 +70,16 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     }
 
     @Override
+    public InterpretTree.NodeI visitFor(ASTNodes.ForNode forn) throws Exception{
+        return new InterpretTree.ForNodeI(
+                (InterpretTree.StatementNodeI) forn.start.visit(this),
+                (InterpretTree.ExprNodeI) forn.condition.visit(this),
+                (InterpretTree.StatementNodeI) forn.increment.visit(this),
+                (InterpretTree.StatementNodeI) forn.body.visit(this)
+        );
+    }
+
+    @Override
     public InterpretTree.NodeI visitIf(ASTNodes.IfNode ifn) throws Exception {
         InterpretTree.StatementNodeI thenStat = (InterpretTree.StatementNodeI) ifn.then.visit(this);
         InterpretTree.StatementNodeI elseStat = null;
@@ -285,11 +295,5 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                 p.name.name,
                 (InterpretTree.ExprListNodeI) p.pars.visit(this)
         );
-    }
-
-    @Override
-    public InterpretTree.NodeI visitFor(ASTNodes.ForNode forn) throws Exception {
-        // Реализация для ForNode (если нужна)
-        return null;
     }
 }
