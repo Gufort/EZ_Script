@@ -64,6 +64,7 @@ public class Main {
 //
     public static void fourthTest() throws Exception{
         String text = "i = 2.0; sum = 0.0; n = 100000000;" +
+                "while (i<n) do {sum += 1/i; i += 1.0} ;" +
                 "Print(sum);" +
                 "if(i == 1) then { Print(sum) }"
                 +"else { Print(52) }";
@@ -86,7 +87,8 @@ public class Main {
     }
 
     public static void fifthTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100000000;" +
+        String text = "i = 2.0; sum = 0.0; n = 100000000;" +
+                "while (i<n) do {sum += 1/i; i += 1.0} ;" +
                 "Print(sum);" +
                 "if(i == 1) then { Print(sum) }"
                 +"else { Print(52) }";
