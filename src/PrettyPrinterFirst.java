@@ -14,23 +14,23 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
     }
 
     @Override
-    public String visitNode(ASTNodes.Node node) {
+    public String visitNode(ASTNodes.Node node) throws Exception {
         return ind() + node.visit(this);
     }
     @Override
-    public String visitExprNode(ASTNodes.ExprNode node) {
+    public String visitExprNode(ASTNodes.ExprNode node) throws Exception {
         return node.visit(this);
     }
     @Override
-    public String visitStatementNode(ASTNodes.StatementNode node) {
+    public String visitStatementNode(ASTNodes.StatementNode node) throws Exception {
         return ind() + node.visit(this);
     }
     @Override
-    public String visitBinOp(ASTNodes.BinOpNode node) {
-        return node.left.visit(this) + " " + ASTNodes.operationToStr.get(node.op) + " " + node.right.visit(this);
+    public String visitBinOp(ASTNodes.BinOpNode node) throws Exception {
+        return node.left.visit(this) + " " + node.operationToString() + " " + node.right.visit(this);
     }
     @Override
-    public String visitStatementList(ASTNodes.StatementListNode stl) {
+    public String visitStatementList(ASTNodes.StatementListNode stl) throws Exception {
         StringBuilder res = new StringBuilder();
 
         for(int i = 0; i < stl.statements.size(); i++) {
@@ -45,7 +45,7 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
-    public String visitExprList(ASTNodes.ExprListNode stl) {
+    public String visitExprList(ASTNodes.ExprListNode stl) throws Exception {
         StringBuilder res = new StringBuilder();
         for(int i = 0; i < stl.lst.size(); i++) {
             if(i > 0) res.append(", ");
@@ -54,27 +54,27 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
-    public String visitInt(ASTNodes.IntNode node) {
+    public String visitInt(ASTNodes.IntNode node) throws Exception {
         return String.valueOf(node.value);
     }
     @Override
-    public String visitDouble(ASTNodes.DoubleNode node) {
+    public String visitDouble(ASTNodes.DoubleNode node) throws Exception {
         return String.valueOf(node.value);
     }
     @Override
-    public String visitId(ASTNodes.IdNode node) {
+    public String visitId(ASTNodes.IdNode node) throws Exception {
         return node.name.toString();
     }
     @Override
-    public String visitAssign(ASTNodes.AssignNode node) {
+    public String visitAssign(ASTNodes.AssignNode node) throws Exception {
         return ind() + node.id.name + " = " + node.expr.visit(this);
     }
     @Override
-    public String visitAssignPlus(ASTNodes.AssignPlusNode node) {
-        return ind() + node.id.name + " += " + node.expr.visit(this);
+    public String visitAssignOperation(ASTNodes.AssignOperationNode node) throws Exception{
+        return ind() + node.id.name + ' ' + node.op + "= " + node.expr.visit(this);
     }
     @Override
-    public String visitIf(ASTNodes.IfNode node) {
+    public String visitIf(ASTNodes.IfNode node) throws Exception {
         StringBuilder res = new StringBuilder();
         res.append(ind()).append("if").append("(").append(node.cond.visit(this)).append(")").append('\n').append('{').append(indInc()).append('\n').append(node.then.visit(this)).append(indDec()).append('\n').append('}').append('\n');
         if(node.elseif != null){
@@ -84,7 +84,7 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
-    public String visitWhile(ASTNodes.WhileNode node) {
+    public String visitWhile(ASTNodes.WhileNode node) throws Exception {
         StringBuilder res = new StringBuilder();
         res.append(ind()).append("while").append('(').append(node.cond.visit(this)).append(") \n");
         res.append(ind()).append('{').append('\n');
@@ -95,7 +95,11 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
-    public String visitProcCall(ASTNodes.ProcCallNode node) {
+    public String visitFor(ASTNodes.ForNode node) throws Exception {
+        return null;
+    }
+    @Override
+    public String visitProcCall(ASTNodes.ProcCallNode node) throws Exception {
         if (node.pars == null || node.pars.lst.isEmpty()) {
             return ind() + node.name.name + "();";
         }
@@ -112,7 +116,7 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
-    public String visitFuncCall(ASTNodes.FuncCallNode node) {
+    public String visitFuncCall(ASTNodes.FuncCallNode node) throws Exception {
         if (node.pars == null || node.pars.lst.isEmpty()) {
             return ind() + node.name.name + "()";
         }

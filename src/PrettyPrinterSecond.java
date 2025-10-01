@@ -14,23 +14,23 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
     }
 
     @Override
-    public String visitNode(ASTNodes.Node node) {
+    public String visitNode(ASTNodes.Node node) throws Exception {
         return ind() + node.visit(this);
     }
     @Override
-    public String visitExprNode(ASTNodes.ExprNode node) {
+    public String visitExprNode(ASTNodes.ExprNode node)throws Exception {
         return node.visit(this);
     }
     @Override
-    public String visitStatementNode(ASTNodes.StatementNode node) {
+    public String visitStatementNode(ASTNodes.StatementNode node) throws Exception {
         return ind() + node.visit(this);
     }
     @Override
-    public String visitBinOp(ASTNodes.BinOpNode node) {
-        return node.left.visit(this) + " " + ASTNodes.operationToStr.get(node.op) + " " + node.right.visit(this);
+    public String visitBinOp(ASTNodes.BinOpNode node) throws Exception {
+        return node.left.visit(this) + " " + node.operationToString() + " " + node.right.visit(this);
     }
     @Override
-    public String visitStatementList(ASTNodes.StatementListNode lst) {
+    public String visitStatementList(ASTNodes.StatementListNode lst) throws Exception{
         StringBuilder res = new StringBuilder();
 
         for(int i = 0; i < lst.statements.size(); i++){
@@ -41,7 +41,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return res.toString();
     }
     @Override
-    public String visitExprList(ASTNodes.ExprListNode lst) {
+    public String visitExprList(ASTNodes.ExprListNode lst) throws Exception {
         StringBuilder res = new StringBuilder();
 
         for(int i = 0; i < lst.lst.size(); i++){
@@ -64,15 +64,15 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return node.name.toString();
     }
     @Override
-    public String visitAssign(ASTNodes.AssignNode node) {
+    public String visitAssign(ASTNodes.AssignNode node) throws Exception{
         return ind() + node.id.name + " := " + node.expr.visit(this);
     }
     @Override
-    public String visitAssignPlus(ASTNodes.AssignPlusNode node) {
-        return ind() + node.id.name + " += " + node.expr.visit(this);
+    public String visitAssignOperation(ASTNodes.AssignOperationNode node) throws Exception{
+        return ind() + node.id.name + ' ' + node.op + "= " + node.expr.visit(this);
     }
     @Override
-    public String visitIf(ASTNodes.IfNode node) {
+    public String visitIf(ASTNodes.IfNode node) throws Exception {
         StringBuilder res = new StringBuilder();
 
         res.append("if").append(" ").append(node.cond.visit(this)).append(" ").append("then:").append("\n")
@@ -84,7 +84,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return res.toString();
     }
     @Override
-    public String visitWhile(ASTNodes.WhileNode node) {
+    public String visitWhile(ASTNodes.WhileNode node) throws Exception {
         StringBuilder res = new StringBuilder();
 
         res.append("while").append(" ").append(node.cond.visit(this)).append(" ").append("do:").append("\n")
@@ -92,8 +92,14 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
 
         return res.toString();
     }
+
     @Override
-    public String visitProcCall(ASTNodes.ProcCallNode node) {
+    public String visitFor(ASTNodes.ForNode node) throws Exception {
+        return null;
+
+    }
+    @Override
+    public String visitProcCall(ASTNodes.ProcCallNode node) throws Exception {
         if (node.pars == null || node.pars.lst.isEmpty()) {
             return ind() + node.name.name + "();";
         }
@@ -110,7 +116,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return res.toString();
     }
     @Override
-    public String visitFuncCall(ASTNodes.FuncCallNode node) {
+    public String visitFuncCall(ASTNodes.FuncCallNode node) throws Exception {
         if (node.pars == null || node.pars.lst.isEmpty()) {
             return ind() + node.name.name + "();";
         }

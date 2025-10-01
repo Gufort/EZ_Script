@@ -29,21 +29,22 @@ public abstract class ASTNodes {
     }
 
     interface IVisitor<T>{
-        T visitNode(Node bin);
-        T visitExprNode(ExprNode bin);
-        T visitStatementNode(StatementNode bin);
-        T visitBinOp(BinOpNode bin);
-        T visitStatementList(StatementListNode stl);
-        T visitExprList(ExprListNode exlist);
-        T visitInt(IntNode n);
-        T visitDouble(DoubleNode d);
-        T visitId(IdNode id);
-        T visitAssign(AssignNode ass);
-        T visitAssignPlus(AssignPlusNode ass);
-        T visitIf(IfNode ifn);
-        T visitWhile(WhileNode whl);
-        T visitProcCall(ProcCallNode p);
-        T visitFuncCall(FuncCallNode f);
+        T visitNode(Node bin)  throws Exception ;
+        T visitExprNode(ExprNode bin) throws Exception;
+        T visitStatementNode(StatementNode bin) throws Exception;
+        T visitBinOp(BinOpNode bin) throws Exception;
+        T visitStatementList(StatementListNode stl) throws Exception;
+        T visitExprList(ExprListNode exlist) throws Exception;
+        T visitInt(IntNode n) throws Exception;
+        T visitDouble(DoubleNode d) throws Exception;
+        T visitId(IdNode id) throws Exception;
+        T visitAssign(AssignNode ass) throws Exception;
+        T visitAssignOperation(AssignOperationNode ass) throws Exception;
+        T visitIf(IfNode ifn) throws Exception;
+        T visitWhile(WhileNode whl) throws Exception;
+        T visitFor(ForNode forn) throws Exception;
+        T visitProcCall(ProcCallNode p) throws Exception;
+        T visitFuncCall(FuncCallNode f) throws Exception;
     }
 
     interface IVisitorP{
@@ -57,22 +58,23 @@ public abstract class ASTNodes {
         void visitDouble(DoubleNode d) throws Exception ;
         void visitId(IdNode id) throws Exception;
         void visitAssign(AssignNode ass) throws Exception;
-        void visitAssignPlus(AssignPlusNode ass) throws Exception;
+        void visitAssignOperation(AssignOperationNode ass) throws Exception;
         void visitIf(IfNode ifn) throws Exception;
+        void visitFor(ForNode forn) throws Exception;
         void visitWhile(WhileNode whn) throws Exception;
         void visitProcCall(ProcCallNode p) throws Exception;
         void visitFuncCall(FuncCallNode f) throws Exception;
     }
     
     public static abstract class Node{
-        public abstract <T> T visit(IVisitor<T> v);
+        public abstract <T> T visit(IVisitor<T> v) throws Exception ;
         public abstract void visitP(IVisitorP v) throws Exception;
     }
 
     public static abstract class ExprNode extends Node{
         public Position position;
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitExprNode(this); };
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitExprNode(this); };
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitExprNode(this); }
     }
@@ -80,7 +82,7 @@ public abstract class ASTNodes {
     public static abstract class StatementNode extends Node{
         public Position position;
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitStatementNode(this); };
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitStatementNode(this); };
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitStatementNode(this); }
         public void setPos(Position pos){
@@ -91,17 +93,35 @@ public abstract class ASTNodes {
     public static class BinOpNode extends ExprNode{
         public ExprNode left;
         public ExprNode right;
-        public OperationType op;
+        public LexerUnit.TokenType op;
 
-        public BinOpNode(ExprNode left, ExprNode right, OperationType op, Position position) {
+        public BinOpNode(ExprNode left, ExprNode right, LexerUnit.TokenType op, Position position) {
             this.left = left;
             this.right = right;
             this.op = op;
             this.position = position;
         }
 
+        public String operationToString(){
+            switch(op){
+                case PLUS: return "+";
+                case MINUS: return "-";
+                case MULTIPLE: return "*";
+                case DIVIDE: return "/";
+                case LESS: return "<";
+                case LESSEQUAL: return "<=";
+                case GREATER: return ">";
+                case GREATEREQUAL: return ">=";
+                case EQUAL: return "==";
+                case NOTEQUAL: return "!=";
+                case AND: return "&&";
+                case OR: return "||";
+                default: return "";
+            }
+        }
+
         @Override
-        public <T> T visit(IVisitor<T> v){return v.visitBinOp(this); };
+        public <T> T visit(IVisitor<T> v) throws Exception{return v.visitBinOp(this); };
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitBinOp(this); }
         @Override
@@ -114,7 +134,7 @@ public abstract class ASTNodes {
         public ArrayList<StatementNode> statements = new ArrayList<StatementNode>();
         public void add(StatementNode statement){ statements.add(statement); }
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitStatementList(this); };
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitStatementList(this); };
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitStatementList(this); }
 
@@ -135,7 +155,7 @@ public abstract class ASTNodes {
         public ArrayList<ExprNode> lst = new ArrayList<ExprNode>();
         public void add(ExprNode expr){ lst.add(expr); }
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitExprList(this); };
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitExprList(this); };
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitExprList(this); }
         @Override
@@ -163,7 +183,7 @@ public abstract class ASTNodes {
         public IntNode(int value) { this.value = value; }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitInt(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitInt(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitInt(this); }
@@ -181,10 +201,10 @@ public abstract class ASTNodes {
             this.position = position;
         }
 
-        public DoubleNode(double value) { this.value = value; }
+        public DoubleNode(double value) throws Exception { this.value = value; }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitDouble(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitDouble(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitDouble(this); }
@@ -195,7 +215,9 @@ public abstract class ASTNodes {
 
     public static class IdNode extends ExprNode{
         public String name;
-        public Position position;
+        public int ind; // индекс в таблице varValues
+        public IntPointer pi;
+        public RealPointer pr;
 
         public IdNode(String name, Position position) {
             this.name = name;
@@ -205,7 +227,7 @@ public abstract class ASTNodes {
         public IdNode(String name) { this.name = name; }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitId(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitId(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitId(this); }
@@ -224,7 +246,7 @@ public abstract class ASTNodes {
             this.position = position;
         }
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitAssign(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitAssign(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitAssign(this); }
@@ -235,22 +257,23 @@ public abstract class ASTNodes {
         }
     }
 
-    public static class AssignPlusNode extends StatementNode{
+    public static class AssignOperationNode extends StatementNode{
         public IdNode id;
         public ExprNode expr;
+        public char op;
 
-        public AssignPlusNode(IdNode id, ExprNode expr, Position position) {
+        public AssignOperationNode(IdNode id, ExprNode expr, char op, Position position) {
             this.id = id;
             this.expr = expr;
+            this.op = op;
             this.position = position;
         }
 
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitAssignOperation(this); }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitAssignPlus(this); }
-
-        @Override
-        public void visitP(IVisitorP v) throws Exception { v.visitAssignPlus(this); }
+        public void visitP(IVisitorP v) throws Exception { v.visitAssignOperation(this); }
 
         @Override
         public String toString() {
@@ -271,7 +294,7 @@ public abstract class ASTNodes {
         }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitIf(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitIf(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitIf(this); }
@@ -286,6 +309,31 @@ public abstract class ASTNodes {
         }
     }
 
+    public static class ForNode extends StatementNode{
+        public ExprNode condition;
+        public StatementNode body;
+        public StatementNode start;
+        public StatementNode increment;
+
+        public ForNode(StatementNode start, ExprNode condition, StatementNode increment, StatementNode body, Position position) {
+            this.condition = condition;
+            this.body = body;
+            this.start = start;
+            this.increment = increment;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitFor(this); }
+        @Override
+        public void visitP(IVisitorP v) throws Exception { v.visitFor(this); }
+
+        @Override
+        public String toString() {
+            return "(" + start + ";" + condition + ";" + increment + ")" + "((" + body + "))";
+        }
+    }
+
     public static class WhileNode extends StatementNode{
         public ExprNode cond;
         public StatementNode stat;
@@ -297,7 +345,7 @@ public abstract class ASTNodes {
         }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitWhile(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitWhile(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitWhile(this); }
@@ -320,7 +368,7 @@ public abstract class ASTNodes {
 
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitProcCall(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception{ return v.visitProcCall(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitProcCall(this); }
@@ -342,7 +390,7 @@ public abstract class ASTNodes {
         }
 
         @Override
-        public <T> T visit(IVisitor<T> v){ return v.visitFuncCall(this); }
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitFuncCall(this); }
 
         @Override
         public void visitP(IVisitorP v) throws Exception { v.visitFuncCall(this); }
