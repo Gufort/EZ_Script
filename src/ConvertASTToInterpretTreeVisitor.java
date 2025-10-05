@@ -186,18 +186,18 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
         switch (bin.op) {
             case PLUS:
                 switch (sit) {
-                    case 0: // int + int
+                    case 0:
                         if (rinterpr instanceof InterpretTree.IntNodeI) {
                             InterpretTree.IntNodeI ric = (InterpretTree.IntNodeI) rinterpr;
                             return new InterpretTree.PlusIC(linterpr, ric.val);
                         } else {
                             return new InterpretTree.PlusII(linterpr, rinterpr);
                         }
-                    case 4: // real + real
+                    case 4:
                         return new InterpretTree.PlusRR(linterpr, rinterpr);
-                    case 1: // int + real
+                    case 1:
                         return new InterpretTree.PlusIR(linterpr, rinterpr);
-                    case 3: // real + int
+                    case 3:
                         return new InterpretTree.PlusRI(linterpr, rinterpr);
                 }
                 break;

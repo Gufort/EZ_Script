@@ -70,32 +70,37 @@ public class Main {
                 "Print(sum);" +
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
-                +"for(d = 0; d < 5; d += 1) do { sum = 1 }";
-
+                +"k = 100;"
+                +"for(d = 0; d < k; d += 1) do { sum = 1 };"
+                +"Print(sum)";
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
             var progr = par.mainProgram();
             progr.visitP(new SemanticCheck());
             InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
-            var pp = new PrettyPrinterSecond();
+            var pp = new PrettyPrinterFirst();
             rooti.execute();
             System.out.println(progr.visit(pp));
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
-        }
+        }s
         catch (CompilerException.SyntaxException e) {
             CompilerException.outputError("Parser error:", e, lex.getLines());
         }
     }
 
     public static void fifthTest() throws Exception{
-        String text = "i = 2.0; sum = 0.0; n = 100000000;" +
-                "while (i<n) do {sum += 1/i; i += 1.0} ;" +
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<n) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
-                "if(i == 1) then { Print(sum) }"
-                +"else { Print(52) }";
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"k = 100;"
+                +"for(d = 0; d < k; d += 1) do { sum = 1 };"
+                +"Print(sum)";
+
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);

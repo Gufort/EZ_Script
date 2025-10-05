@@ -95,8 +95,15 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
 
     @Override
     public String visitFor(ASTNodes.ForNode node) throws Exception {
-        return null;
-
+        StringBuilder res = new StringBuilder();
+        res.append(ind()).append("for").append('(').append(node.start.visit(this)).append("; ").
+                append(node.condition.visit(this)).append("; ").append(node.increment.visit(this)).append(") do: ").
+                append(ind()).append('\n');
+        indInc();
+        res.append(node.body.visit(this));
+        indDec();
+        res.append(ind());
+        return res.toString();
     }
     @Override
     public String visitProcCall(ASTNodes.ProcCallNode node) throws Exception {
