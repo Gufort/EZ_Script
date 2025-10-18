@@ -45,6 +45,7 @@ public abstract class ASTNodes {
     }
     
     public static abstract class Node{
+        public Position position;
         public abstract <T> T visit(IVisitor<T> v) throws Exception ;
         public abstract void visitP(IVisitorP v) throws Exception;
     }

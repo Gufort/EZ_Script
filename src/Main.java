@@ -1,5 +1,6 @@
 import Basic.ASTNodes;
 import Basic.LexerUnit;
+import Basic.LoggerVisitor;
 import Basic.Parser;
 import ExceptionLogic.CompilerException;
 import Interpret.ConvertASTToInterpretTreeVisitor;
@@ -7,6 +8,7 @@ import Interpret.InterpretTree;
 import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
+import java.util.logging.Logger;
 import VirtualMachine.*;
 import com.sun.tools.attach.VirtualMachine;
 
@@ -122,6 +124,34 @@ public class Main {
         }
     }
 
+    public static void sixthTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<100000000) do {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"for(d = 0; d < 5; d += 1) do { Print(4) }";
+
+        var lex = new LexerUnit.Lexer(text);
+        try {
+            Logger logger = Logger.getLogger(Main.class.getName());
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            progr.visitP(new LoggerVisitor(logger));
+            var pp = new PrettyPrinterFirst();
+            System.out.println(progr.visit(pp));
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 //        System.out.println("======> Без Interpret.InterpretTree <======");
 //        firstTest();
@@ -134,6 +164,7 @@ public class Main {
 //        thirdTest();
 //
 //        System.out.println();
-        fourthTest();
+//        fourthTest();
+//        sixthTest();
     }
 }
