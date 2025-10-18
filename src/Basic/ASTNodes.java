@@ -1,34 +1,12 @@
+package Basic;
+
+import Pointers.*;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 public abstract class ASTNodes {
-
-    public static Dictionary<String, Double> varValues = new Hashtable<String, Double>();
-
-    public static enum OperationType{opPlus, opMinus, opMultiply, opDivide,
-    opEqual, opLess, opLessEqual, opGreater, opGreaterEqual, opNotEqual,
-    opAnd, opOr, opNot, opBad};
-
-    public static Dictionary<OperationType, String> operationToStr = new Hashtable<OperationType, String>(){};
-
-    static {
-        operationToStr.put(OperationType.opPlus, "+");
-        operationToStr.put(OperationType.opMinus, "-");
-        operationToStr.put(OperationType.opMultiply, "*");
-        operationToStr.put(OperationType.opDivide, "/");
-        operationToStr.put(OperationType.opEqual, "==");
-        operationToStr.put(OperationType.opLess, "<");
-        operationToStr.put(OperationType.opLessEqual, "<=");
-        operationToStr.put(OperationType.opGreater, ">");
-        operationToStr.put(OperationType.opGreaterEqual, ">=");
-        operationToStr.put(OperationType.opNotEqual, "!=");
-        operationToStr.put(OperationType.opAnd, "&&");
-        operationToStr.put(OperationType.opOr, "||");
-        operationToStr.put(OperationType.opNot, "!");
-    }
-
-    interface IVisitor<T>{
+    public interface IVisitor<T>{
         T visitNode(Node bin)  throws Exception ;
         T visitExprNode(ExprNode bin) throws Exception;
         T visitStatementNode(StatementNode bin) throws Exception;
@@ -47,7 +25,7 @@ public abstract class ASTNodes {
         T visitFuncCall(FuncCallNode f) throws Exception;
     }
 
-    interface IVisitorP{
+    public interface IVisitorP{
         void visitNode(Node bin) throws Exception ;
         void visitExprNode(ExprNode bin) throws Exception ;
         void visitStatementNode(StatementNode bin) throws Exception ;

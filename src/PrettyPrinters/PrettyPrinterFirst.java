@@ -1,4 +1,8 @@
-public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
+package PrettyPrinters;
+
+import Basic.ASTNodes;
+
+public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
     private int indent = 0;
 
     public String ind(){ return " ".repeat(indent); }
@@ -18,7 +22,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return ind() + node.visit(this);
     }
     @Override
-    public String visitExprNode(ASTNodes.ExprNode node)throws Exception {
+    public String visitExprNode(ASTNodes.ExprNode node) throws Exception {
         return node.visit(this);
     }
     @Override
@@ -30,42 +34,44 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return node.left.visit(this) + " " + node.operationToString() + " " + node.right.visit(this);
     }
     @Override
-    public String visitStatementList(ASTNodes.StatementListNode lst) throws Exception{
+    public String visitStatementList(ASTNodes.StatementListNode stl) throws Exception {
         StringBuilder res = new StringBuilder();
 
-        for(int i = 0; i < lst.statements.size(); i++){
-            if(i > 0) res.append("\n");
-            res.append(lst.statements.get(i).visit(this));
+        for(int i = 0; i < stl.statements.size(); i++) {
+            var curr = stl.statements.get(i);
+            res.append(curr.visit(this));
+            if(i < stl.statements.size() - 1) {
+                res.append(";").append('\n');
+            }
         }
 
+        res.append(ind());
         return res.toString();
     }
     @Override
-    public String visitExprList(ASTNodes.ExprListNode lst) throws Exception {
+    public String visitExprList(ASTNodes.ExprListNode stl) throws Exception {
         StringBuilder res = new StringBuilder();
-
-        for(int i = 0; i < lst.lst.size(); i++){
+        for(int i = 0; i < stl.lst.size(); i++) {
             if(i > 0) res.append(", ");
-            res.append(ind() + lst.lst.get(i).visit(this));
+            res.append(ind() + stl.lst.get(i).visit(this));
         }
-
         return res.toString();
     }
     @Override
-    public String visitInt(ASTNodes.IntNode node) {
-        return Integer.toString(node.value);
+    public String visitInt(ASTNodes.IntNode node) throws Exception {
+        return String.valueOf(node.value);
     }
     @Override
-    public String visitDouble(ASTNodes.DoubleNode node) {
-        return Double.toString(node.value);
+    public String visitDouble(ASTNodes.DoubleNode node) throws Exception {
+        return String.valueOf(node.value);
     }
     @Override
-    public String visitId(ASTNodes.IdNode node) {
+    public String visitId(ASTNodes.IdNode node) throws Exception {
         return node.name.toString();
     }
     @Override
-    public String visitAssign(ASTNodes.AssignNode node) throws Exception{
-        return ind() + node.id.name + " := " + node.expr.visit(this);
+    public String visitAssign(ASTNodes.AssignNode node) throws Exception {
+        return ind() + node.id.name + " = " + node.expr.visit(this);
     }
     @Override
     public String visitAssignOperation(ASTNodes.AssignOperationNode node) throws Exception{
@@ -74,35 +80,34 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
     @Override
     public String visitIf(ASTNodes.IfNode node) throws Exception {
         StringBuilder res = new StringBuilder();
-
-        res.append("if").append(" ").append(node.cond.visit(this)).append(" ").append("then:").append("\n")
-                .append(indInc()).append(node.then.visit(this)).append(indDec()).append('\n');
+        res.append(ind()).append("if").append("(").append(node.cond.visit(this)).append(")").append('\n').append('{').append(indInc()).append('\n').append(node.then.visit(this)).append(indDec()).append('\n').append('}').append('\n');
         if(node.elseif != null){
-            res.append("else:").append('\n').append(indInc()).append(node.elseif.visit(this)).append(indDec());
+            res.append(ind()).append("else").append('\n').append('{').append(indInc()).append('\n').append(node.elseif.visit(this))
+                    .append(indDec()).append('\n').append('}');
         }
-
         return res.toString();
     }
     @Override
     public String visitWhile(ASTNodes.WhileNode node) throws Exception {
         StringBuilder res = new StringBuilder();
-
-        res.append("while").append(" ").append(node.cond.visit(this)).append(" ").append("do:").append("\n")
-                .append(indInc()).append(node.stat.visit(this)).append(indDec());
-
+        res.append(ind()).append("while").append('(').append(node.cond.visit(this)).append(") \n");
+        res.append(ind()).append('{').append('\n');
+        indInc();
+        res.append(node.stat.visit(this)).append("\n");
+        indDec();
+        res.append(ind()).append("}");
         return res.toString();
     }
-
     @Override
     public String visitFor(ASTNodes.ForNode node) throws Exception {
         StringBuilder res = new StringBuilder();
         res.append(ind()).append("for").append('(').append(node.start.visit(this)).append("; ").
-                append(node.condition.visit(this)).append("; ").append(node.increment.visit(this)).append(") do: ").
-                append(ind()).append('\n');
+        append(node.condition.visit(this)).append("; ").append(node.increment.visit(this)).append(") \n").
+        append(ind()).append('{').append('\n');
         indInc();
-        res.append(node.body.visit(this));
+        res.append(node.body.visit(this)).append("\n");
         indDec();
-        res.append(ind());
+        res.append(ind()).append("}");
         return res.toString();
     }
     @Override
@@ -125,7 +130,7 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
     @Override
     public String visitFuncCall(ASTNodes.FuncCallNode node) throws Exception {
         if (node.pars == null || node.pars.lst.isEmpty()) {
-            return ind() + node.name.name + "();";
+            return ind() + node.name.name + "()";
         }
 
         StringBuilder res = new StringBuilder();

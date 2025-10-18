@@ -1,5 +1,11 @@
-import java.util.ArrayList;
-import java.util.List;
+package Interpret;
+
+import Basic.ASTNodes;
+import Pointers.BooleanPointer;
+import Pointers.IntPointer;
+import Pointers.RealPointer;
+import SemanticCheckLogic.CalcTypes;
+import SemanticCheckLogic.SymbolTable;
 
 public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<InterpretTree.NodeI> {
 

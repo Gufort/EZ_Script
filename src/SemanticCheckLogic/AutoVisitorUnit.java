@@ -1,3 +1,7 @@
+package SemanticCheckLogic;
+
+import Basic.ASTNodes;
+
 public class AutoVisitorUnit implements ASTNodes.IVisitorP {
     @Override public void visitNode(ASTNodes.Node node){}
     @Override public void visitExprNode(ASTNodes.ExprNode node){}

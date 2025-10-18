@@ -1,4 +1,9 @@
-import java.beans.Expression;
+package SemanticCheckLogic;
+
+import Basic.ASTNodes;
+import ExceptionLogic.CompilerException;
+import Pointers.IntPointer;
+import Pointers.RealPointer;
 
 public class SemanticCheck extends AutoVisitorUnit {
     @Override public void visitAssign(ASTNodes.AssignNode node) throws Exception {

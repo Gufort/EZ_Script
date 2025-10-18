@@ -1,4 +1,4 @@
-import com.sun.jdi.DoubleType;
+package SemanticCheckLogic;
 
 import java.util.ArrayList;
 import java.util.Dictionary;

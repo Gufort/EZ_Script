@@ -1,4 +1,7 @@
-import javax.security.auth.login.LoginException;
+package Basic;
+
+import ExceptionLogic.CompilerException;
+
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -49,7 +52,7 @@ public class LexerUnit {
     public static class Token{
         public TokenType type;
         public Object value;
-        public Position  position;
+        public Position position;
         public Token(TokenType type, Object value, int line, int column) {
             this.type = type;
             this.value = value;

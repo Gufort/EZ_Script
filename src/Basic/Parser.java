@@ -1,3 +1,7 @@
+package Basic;
+
+import ExceptionLogic.CompilerException;
+
 public class Parser extends ParserBase {
     public Parser(LexerUnit.Lexer lexer) throws Exception {
         super(lexer);

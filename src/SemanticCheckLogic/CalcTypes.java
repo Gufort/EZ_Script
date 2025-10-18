@@ -1,3 +1,9 @@
+package SemanticCheckLogic;
+
+import Basic.ASTNodes;
+import Basic.LexerUnit;
+import ExceptionLogic.CompilerException;
+
 import java.util.Arrays;
 
 public class CalcTypes {

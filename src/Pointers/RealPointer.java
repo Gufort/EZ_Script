@@ -1,3 +1,5 @@
+package Pointers;
+
 public class RealPointer implements Pointer<Double> {
     private double value;
     public RealPointer(double value) { this.value = value; }

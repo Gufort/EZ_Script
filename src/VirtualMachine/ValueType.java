@@ -1,0 +1,36 @@
+package VirtualMachine;
+
+public class ValueType {
+    public enum VarValueType{
+        INTEGER, REAL, BOOLEAN
+    }
+
+    public int integer;
+    public double real;
+    public boolean bool;
+    public VarValueType type;
+
+    public ValueType(int integer){
+        this.integer = integer;
+        this.type = VarValueType.INTEGER;
+    }
+
+    public ValueType(double real){
+        this.real = real;
+        this.type = VarValueType.REAL;
+    }
+
+    public ValueType(boolean bool){
+        this.bool = bool;
+        this.type = VarValueType.BOOLEAN;
+    }
+
+    @Override public String toString(){
+        switch(type){
+            case INTEGER: return Integer.toString(this.integer);
+            case REAL: return Double.toString(this.real);
+            case BOOLEAN: return Boolean.toString(this.bool);
+        }
+        return null;
+    }
+}

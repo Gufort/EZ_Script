@@ -1,13 +1,22 @@
-import java.io.IOException;
+import Basic.ASTNodes;
+import Basic.LexerUnit;
+import Basic.Parser;
+import ExceptionLogic.CompilerException;
+import Interpret.ConvertASTToInterpretTreeVisitor;
+import Interpret.InterpretTree;
+import PrettyPrinters.PrettyPrinterFirst;
+import PrettyPrinters.PrettyPrinterSecond;
+import SemanticCheckLogic.SemanticCheck;
+import VirtualMachine.*;
 
 public class Main {
 //    public static void firstTest() throws Exception {
-//        var lex  = new LexerUnit.Lexer("a = 35; if a > 40 then a = 40 else { a = 0; print(a * 223 + 10) }");
-//        LexerUnit.Token token;
+//        var lex  = new Basic.LexerUnit.Lexer("a = 35; if a > 40 then a = 40 else { a = 0; print(a * 223 + 10) }");
+//        Basic.LexerUnit.Token token;
 //        do {
 //            token = lex.nextToken();
 //            System.out.println(token.type + ": " + token.value);
-//        } while (token.type != LexerUnit.TokenType.EOF);
+//        } while (token.type != Basic.LexerUnit.TokenType.EOF);
 //    }
 
 //    public static void secondTest() throws Exception{
@@ -17,17 +26,17 @@ public class Main {
 //                "if(i == 1) then { Print(sum) }"
 //                +"else { Print(52) }";
 //
-//        var lex = new LexerUnit.Lexer(text);
+//        var lex = new Basic.LexerUnit.Lexer(text);
 //        try {
-//            var par = new Parser(lex);
+//            var par = new Basic.Parser(lex);
 //            var progr = par.mainProgram();
 //            System.out.println(progr);
 //        }
-//        catch (CompilerException.LexerException e) {
-//            CompilerException.outputError("Lexer error:", e, lex.getLines());
+//        catch (ExceptionLogic.CompilerException.LexerException e) {
+//            ExceptionLogic.CompilerException.outputError("Lexer error:", e, lex.getLines());
 //        }
-//        catch (CompilerException.SyntaxException e) {
-//            CompilerException.outputError("Parser error:", e, lex.getLines());
+//        catch (ExceptionLogic.CompilerException.SyntaxException e) {
+//            ExceptionLogic.CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
 //        }
 //        catch (Exception e) {
 //            e.printStackTrace();
@@ -57,7 +66,7 @@ public class Main {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.getLines());
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -71,7 +80,7 @@ public class Main {
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
                 +"k = 100;"
-                +"for(d = 0; d < k; d += 1) do { sum = 1 };"
+                +"for(d = 0; d < k; d += 1) do { sum += 1 };"
                 +"Print(sum)";
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -85,9 +94,9 @@ public class Main {
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
-        }s
+        }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.getLines());
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
         }
     }
 
@@ -98,7 +107,7 @@ public class Main {
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
                 +"k = 100;"
-                +"for(d = 0; d < k; d += 1) do { sum = 1 };"
+                +"for(d = 0; d < k; d += 1) do { sum += 1; sum += 1 };"
                 +"Print(sum)";
 
         var lex = new LexerUnit.Lexer(text);
@@ -115,34 +124,34 @@ public class Main {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
         }
         catch (CompilerException.SyntaxException e) {
-            CompilerException.outputError("Parser error:", e, lex.getLines());
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
         }
     }
 //
 //    public static void sixthTest() throws Exception{
 //        var text = "i = sqrt(1); sum = 0.0; while i<100000000 do {sum += 1/i; i += 1}; print(sum)";
-//        var lex = new LexerUnit.Lexer(text);
+//        var lex = new Basic.LexerUnit.Lexer(text);
 //        try{
-//            var par = new Parser(lex);
+//            var par = new Basic.Parser(lex);
 //            var progr = par.mainProgram();
-//            var semanticCheck = new SemanticCheck();
+//            var semanticCheck = new SemanticCheckLogic.SemanticCheck();
 //            progr.visitP(semanticCheck);
 //        }
-//        catch (CompilerException.LexerException e) {
-//            CompilerException.outputError("Lexer error:", e, lex.getLines());
+//        catch (ExceptionLogic.CompilerException.LexerException e) {
+//            ExceptionLogic.CompilerException.outputError("Lexer error:", e, lex.getLines());
 //        }
-//        catch (CompilerException.SyntaxException e) {
-//            CompilerException.outputError("Parser error:", e, lex.getLines());
+//        catch (ExceptionLogic.CompilerException.SyntaxException e) {
+//            ExceptionLogic.CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
 //        }
-//        catch (CompilerException.SemanticException e){
-//            CompilerException.outputError("Semantic error:", e, lex.getLines());
+//        catch (ExceptionLogic.CompilerException.SemanticException e){
+//            ExceptionLogic.CompilerException.outputError("Semantic error:", e, lex.getLines());
 //        }
 //    }
 
     public static void main(String[] args) throws Exception {
         //secondTest();
 
-        System.out.println("======> Без InterpretTree <======");
+        System.out.println("======> Без Interpret.InterpretTree <======");
         thirdTest();
 
         System.out.println("\n");
@@ -154,7 +163,5 @@ public class Main {
 
         System.out.println();
         //sixthTest();
-
-
     }
 }

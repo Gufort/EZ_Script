@@ -1,3 +1,7 @@
+package Basic;
+
+import ExceptionLogic.CompilerException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 

@@ -1,3 +1,7 @@
+package ExceptionLogic;
+
+import Basic.Position;
+
 public class CompilerException{
     public static class BaseCompilerException extends Exception {
         public Position position;

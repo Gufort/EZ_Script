@@ -1,3 +1,9 @@
+package Interpret;
+
+import Basic.ASTNodes;
+import ExceptionLogic.CompilerException;
+import SemanticCheckLogic.SymbolTable;
+
 public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
     @Override public Object visitNode(ASTNodes.Node node) throws Exception { return null; }
     @Override public Object visitExprNode(ASTNodes.ExprNode node) throws Exception { return null; }

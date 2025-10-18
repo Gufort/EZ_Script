@@ -1,3 +1,5 @@
+package Pointers;
+
 public class IntPointer implements Pointer<Integer> {
     private int value;
     public IntPointer(int value) { this.value = value; }

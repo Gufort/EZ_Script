@@ -1,3 +1,7 @@
+package SemanticCheckLogic;
+
+import Basic.ASTNodes;
+
 public class SemanticVisitorUnit {
 
     public interface AbstractVisitor<T> {
