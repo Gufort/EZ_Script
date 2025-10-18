@@ -22,6 +22,9 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
             variavleAddreses.put(name, nextVariableAddress++);
         return variavleAddreses.get(name);
     }
+    public ArrayList<ThreeAddressCode> getCode(){
+        return code;
+    }
 
     @Override public void visitNode(ASTNodes.Node node) {}
     @Override public void visitExprNode(ASTNodes.ExprNode node) {}
@@ -253,7 +256,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         node.condition.visitP(this);
         var condTemp = tempCounter - 1;
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IIF, condTemp, endLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condTemp, endLabel));
 
         node.body.visitP(this);
         node.increment.visitP(this);

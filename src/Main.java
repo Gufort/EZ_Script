@@ -9,41 +9,10 @@ import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
 import VirtualMachine.*;
 
-public class Main {
-//    public static void firstTest() throws Exception {
-//        var lex  = new Basic.LexerUnit.Lexer("a = 35; if a > 40 then a = 40 else { a = 0; print(a * 223 + 10) }");
-//        Basic.LexerUnit.Token token;
-//        do {
-//            token = lex.nextToken();
-//            System.out.println(token.type + ": " + token.value);
-//        } while (token.type != Basic.LexerUnit.TokenType.EOF);
-//    }
+import java.util.ArrayList;
 
-//    public static void secondTest() throws Exception{
-//        String text = "i = 1; sum = 0; n = 100000000;" +
-//                "while (i<100000000) do {sum += 1/i; i += 1 };" +
-//                "Print(sum);" +
-//                "if(i == 1) then { Print(sum) }"
-//                +"else { Print(52) }";
-//
-//        var lex = new Basic.LexerUnit.Lexer(text);
-//        try {
-//            var par = new Basic.Parser(lex);
-//            var progr = par.mainProgram();
-//            System.out.println(progr);
-//        }
-//        catch (ExceptionLogic.CompilerException.LexerException e) {
-//            ExceptionLogic.CompilerException.outputError("Lexer error:", e, lex.getLines());
-//        }
-//        catch (ExceptionLogic.CompilerException.SyntaxException e) {
-//            ExceptionLogic.CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
-//        }
-//        catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-//
-    public static void thirdTest() throws Exception{
+public class Main {
+    public static void firstTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<100000000) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
@@ -73,7 +42,7 @@ public class Main {
         }
     }
 
-    public static void fourthTest() throws Exception{
+    public static void secondTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<n) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
@@ -100,7 +69,7 @@ public class Main {
         }
     }
 
-    public static void fifthTest() throws Exception{
+    public static void thirdTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<n) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
@@ -127,41 +96,67 @@ public class Main {
             CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
         }
     }
-//
-//    public static void sixthTest() throws Exception{
-//        var text = "i = sqrt(1); sum = 0.0; while i<100000000 do {sum += 1/i; i += 1}; print(sum)";
-//        var lex = new Basic.LexerUnit.Lexer(text);
-//        try{
-//            var par = new Basic.Parser(lex);
-//            var progr = par.mainProgram();
-//            var semanticCheck = new SemanticCheckLogic.SemanticCheck();
-//            progr.visitP(semanticCheck);
-//        }
-//        catch (ExceptionLogic.CompilerException.LexerException e) {
-//            ExceptionLogic.CompilerException.outputError("Lexer error:", e, lex.getLines());
-//        }
-//        catch (ExceptionLogic.CompilerException.SyntaxException e) {
-//            ExceptionLogic.CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
-//        }
-//        catch (ExceptionLogic.CompilerException.SemanticException e){
-//            ExceptionLogic.CompilerException.outputError("Semantic error:", e, lex.getLines());
-//        }
-//    }
+
+    public static void fourthTest() throws Exception{
+        String text = "i = 111; sum = 1; n = 100000000;" +
+                "while (i<n) do {sum += 1/i; i += 1} ;" +
+                "Print(sum);" +
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"k = 100;"
+                +"for(d = 0; d < k; d += 1) do { sum += 1; sum += 1 };"
+                +"Print(sum)";
+
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            progr.visitP(new SemanticCheck());
+
+            // ТЕСТИРОВАНИЕ VIRTUAL MACHINE
+            System.out.println("======> Virtual Machine Test <======");
+
+            // Создаем визитор для генерации TAC
+            ThreeAddressVisitor tacVisitor = new ThreeAddressVisitor();
+            progr.visitP(tacVisitor);
+            tacVisitor.Stop(); // Завершаем генерацию кода
+
+            ArrayList<ThreeAddressCode> tacCode = tacVisitor.getCode();
+
+            System.out.println("\nРезультат выполнения VM:");
+            SimpleVirtualMachine.loadProgram(tacCode);
+            SimpleVirtualMachine.run();
+
+            System.out.println("\n" + "=".repeat(50));
+
+            // Для сравнения запускаем старый интерпретатор
+            System.out.println("======> Старый интерпретатор <======");
+            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
+            var pp = new PrettyPrinterSecond();
+            rooti.execute();
+            System.out.println(progr.visit(pp));
+
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+    }
 
     public static void main(String[] args) throws Exception {
-        //secondTest();
-
-        System.out.println("======> Без Interpret.InterpretTree <======");
-        thirdTest();
-
-        System.out.println("\n");
-        System.out.println("======> Что-то похожее на с# <======");
+//        System.out.println("======> Без Interpret.InterpretTree <======");
+//        firstTest();
+//
+//        System.out.println("\n");
+//        System.out.println("======> Что-то похожее на с# <======");
+//        secondTest();
+//        System.out.println("\n");
+//        System.out.println("======> Pascal + Python <======");
+//        thirdTest();
+//
+//        System.out.println();
         fourthTest();
-        System.out.println("\n");
-        System.out.println("======> Pascal + Python <======");
-        fifthTest();
-
-        System.out.println();
-        //sixthTest();
     }
 }
