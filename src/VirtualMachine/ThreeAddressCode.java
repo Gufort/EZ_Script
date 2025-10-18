@@ -77,6 +77,9 @@ public class ThreeAddressCode {
         IIF, // cond jump
         IFN, // if not
 
+        PUSH,
+        POP,
+
         LABEL, // label marker
         GOTO, // uncond jump
         STOP// stop
@@ -84,25 +87,24 @@ public class ThreeAddressCode {
 
     public Commands command;
     public int indexInMemory = -1;
+    public int indexOfFirstOperand = -1;
+    public int indexOfSecondOperand = -1;
 
     public int IValue;
     public double RValue;
     public boolean BValue;
-
-    public int indexOfFirstOperand = -1;
-    public int indexOfSecondOperand = -1;
     public String label;
     public ValueType value;
 
     // команды без параметров
-    public static ThreeAddressCode create(Commands command){
+    public static ThreeAddressCode create(Commands command) {
         var code = new ThreeAddressCode();
         code.command = command;
         return code;
     }
 
     // команды с одним индексом памяти
-    public static ThreeAddressCode create(Commands command, int indexInMemory){
+    public static ThreeAddressCode create(Commands command, int indexInMemory) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = indexInMemory;
@@ -110,7 +112,7 @@ public class ThreeAddressCode {
     }
 
     // для константных присваиваний
-    public static ThreeAddressCode createConst(Commands command, int indexInMemory, int IValue){
+    public static ThreeAddressCode createConst(Commands command, int indexInMemory, int IValue) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = indexInMemory;
@@ -118,7 +120,7 @@ public class ThreeAddressCode {
         return code;
     }
 
-    public static ThreeAddressCode createConst(Commands command, int indexInMemory, double RValue){
+    public static ThreeAddressCode createConst(Commands command, int indexInMemory, double RValue) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = indexInMemory;
@@ -127,7 +129,7 @@ public class ThreeAddressCode {
     }
 
     // для команд с меткой
-    public static ThreeAddressCode create(Commands command, String label){
+    public static ThreeAddressCode create(Commands command, String label) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.label = label;
@@ -135,7 +137,7 @@ public class ThreeAddressCode {
     }
 
     // для условных переходов с индексом и меткой
-    public static ThreeAddressCode create(Commands command, int indexInMemory, String label){
+    public static ThreeAddressCode create(Commands command, int indexInMemory, String label) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = indexInMemory;
@@ -143,24 +145,27 @@ public class ThreeAddressCode {
         return code;
     }
 
-    // присваивания между переменными
-    public static ThreeAddressCode createAssign(Commands command, int destIndex, int srcIndex){
+    // присваивания между переменными - ИСПРАВЛЕНО
+    public static ThreeAddressCode createAssign(Commands command, int destIndex, int srcIndex) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = destIndex;
-        code.indexInMemory = srcIndex;
+        code.indexOfFirstOperand = srcIndex; // ИСПРАВЛЕНО
         return code;
     }
 
-    public static ThreeAddressCode createConvert(Commands command, int destIndex,  int srcIndex){
+    // конвертация типов - ИСПРАВЛЕНО
+    public static ThreeAddressCode createConvert(Commands command, int srcIndex, int destIndex) {
         var code = new ThreeAddressCode();
         code.command = command;
-        code.indexInMemory = destIndex;
-        code.indexInMemory = srcIndex;
+        code.indexOfFirstOperand = srcIndex;   // источник
+        code.indexInMemory = destIndex;        // назначение
         return code;
     }
 
-    public static ThreeAddressCode createBinary(Commands command, int indexOfFirstOperand, int indexOfSecondOperand, int resultIndex){
+    // бинарные операции
+    public static ThreeAddressCode createBinary(Commands command, int indexOfFirstOperand,
+                                                int indexOfSecondOperand, int resultIndex) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexOfFirstOperand = indexOfFirstOperand;
@@ -169,7 +174,9 @@ public class ThreeAddressCode {
         return code;
     }
 
-    public static ThreeAddressCode createAssignOperation(Commands command, int destIndex, int indexOfFirstOperand, int indexOfSecondOperand){
+    // операции присваивания с операцией
+    public static ThreeAddressCode createAssignOperation(Commands command, int destIndex,
+                                                         int indexOfFirstOperand, int indexOfSecondOperand) {
         var code = new ThreeAddressCode();
         code.command = command;
         code.indexInMemory = destIndex;

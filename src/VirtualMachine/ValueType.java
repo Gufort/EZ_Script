@@ -5,6 +5,8 @@ public class ValueType {
         INTEGER, REAL, BOOLEAN
     }
 
+    public ValueType(){}
+
     public int integer;
     public double real;
     public boolean bool;

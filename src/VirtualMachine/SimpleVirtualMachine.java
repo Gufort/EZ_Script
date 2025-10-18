@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import java.util.Stack;
 
 public class SimpleVirtualMachine {
-    public static ArrayList<ValueType> memory = new ArrayList<ValueType>();
+    public static ValueType[] memory = new ValueType[1000];
 
     private static Hashtable<String, Integer> labelAddresses = new Hashtable<String, Integer>();
     private static Stack<Integer> calls = new Stack<Integer>();
@@ -15,7 +15,7 @@ public class SimpleVirtualMachine {
     private static ThreeAddressCode[] program;
     private static Hashtable<String, Runnable> standartFunctions = new Hashtable<String, Runnable>();
     static {
-        standartFunctions.put("print", () -> executePrintFunction());
+        standartFunctions.put("Print", () -> executePrintFunction());
     }
     private static int programCounter = 0;
 
@@ -44,151 +44,175 @@ public class SimpleVirtualMachine {
         }
     }
 
+    public static void initialize()
+    {
+        for (int i = 0; i < memory.length; i++)
+            memory[i] = new ValueType();
+    }
+
+    public static void increaseMemorySize(int size) {
+        if(size >= memory.length){
+            int newSize = Math.max(size + 100, memory.length * 2);
+            int oldSize = memory.length;
+            ValueType[] newArray = new ValueType[newSize];
+            System.arraycopy(memory, 0, newArray, 0, memory.length);
+            memory = newArray;
+            // Инициализируем новые ячейки
+            for(int i = oldSize; i < memory.length; i++) {
+                memory[i] = new ValueType();
+            }
+        }
+    }
+
     public static void resetVM(){
         programCounter = 0;
         calls.clear();
         params.clear();
         labelAddresses.clear();
         program = null;
-        memory.clear();
+        initialize();
     }
 
-    public static void execute(ThreeAddressCode tar) throws Exception{
+    public static void execute(ThreeAddressCode tar) throws Exception {
+        int maxIndex = Math.max(tar.indexInMemory,
+                Math.max(tar.indexOfFirstOperand, tar.indexOfSecondOperand));
+        if (maxIndex >= 0) {
+            increaseMemorySize(maxIndex + 1);
+        }
+
         switch(tar.command){
             case ThreeAddressCode.Commands.ICAAS:
                 if(tar.IValue != 0)
-                    memory.get(tar.indexInMemory).integer = tar.IValue;
-                else memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer;
+                    memory[tar.indexInMemory].integer = tar.IValue;
+                else memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RCAAS:
                 if(tar.RValue != 0)
-                    memory.get(tar.indexInMemory).real = tar.RValue;
-                else memory.get(tar.indexInMemory).real = memory.get(tar.indexOfFirstOperand).real;
+                    memory[tar.indexInMemory].real = tar.RValue;
+                else memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real;
                 break;
-            case ThreeAddressCode.Commands.BCAAS: memory.get(tar.indexInMemory).bool = tar.BValue; break;
+            case ThreeAddressCode.Commands.BCAAS:
+                memory[tar.indexInMemory].bool = tar.BValue;
+                break;
 
             case ThreeAddressCode.Commands.IASS:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RASS:
-                memory.get(tar.indexInMemory).real = memory.get(tar.indexOfFirstOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real;
                 break;
             case ThreeAddressCode.Commands.BASS:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).bool;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].bool;
                 break;
 
             case ThreeAddressCode.Commands.IASSADD:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer + memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer + memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RASSADD:
-                memory.get(tar.indexInMemory).real = memory.get(tar.indexOfFirstOperand).real + memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real + memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IASSSUB:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer - memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer - memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RASSSUB:
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real - memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real - memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IASSMUL:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer * memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer * memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RASSMUL:
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real * memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real * memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IASSDIV:
-                if(memory.get(tar.indexOfSecondOperand).integer == 0)
+                if(memory[tar.indexOfSecondOperand].integer == 0)
                     throw new Exception("Divide by zero!!!");
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer / memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer / memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RASSDIV:
-                if(memory.get(tar.indexOfSecondOperand).real == 0)
+                if(memory[tar.indexOfSecondOperand].real == 0)
                     throw new Exception("Divide by zero!!!");
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real / memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real / memory[tar.indexOfSecondOperand].real;
                 break;
 
             case ThreeAddressCode.Commands.IADD:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer + memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer + memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RADD:
-                memory.get(tar.indexInMemory).real = memory.get(tar.indexOfFirstOperand).real + memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real + memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.ISUB:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer - memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer - memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RSUB:
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real - memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real - memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IMUL:
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer * memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer * memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RMUL:
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real * memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real * memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IDIV:
-                if(memory.get(tar.indexOfSecondOperand).integer == 0)
+                if(memory[tar.indexOfSecondOperand].integer == 0)
                     throw new Exception("Divide by zero!!!");
-                memory.get(tar.indexInMemory).integer = memory.get(tar.indexOfFirstOperand).integer / memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer / memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RDIV:
-                if(memory.get(tar.indexOfSecondOperand).real == 0)
+                if(memory[tar.indexOfSecondOperand].real == 0)
                     throw new Exception("Divide by zero!!!");
-                memory.get(tar.indexInMemory).real  = memory.get(tar.indexOfFirstOperand).real / memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real / memory[tar.indexOfSecondOperand].real;
                 break;
 
             case ThreeAddressCode.Commands.ILT:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer < memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer < memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RLT:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real < memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real < memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IGT:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer > memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer > memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RGT:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real > memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real > memory[tar.indexOfSecondOperand].real;
                 break;
 
             case ThreeAddressCode.Commands.ILEQ:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer <= memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer <= memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RLEQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real <= memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real <= memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.IGEQ:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer >= memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer >= memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RGEQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real >= memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real >= memory[tar.indexOfSecondOperand].real;
                 break;
-
             case ThreeAddressCode.Commands.IEQ:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer == memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer == memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.REQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real == memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real == memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.BEQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).bool == memory.get(tar.indexOfSecondOperand).bool;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].bool == memory[tar.indexOfSecondOperand].bool;
                 break;
             case ThreeAddressCode.Commands.INEQ:
-                memory.get(tar.indexInMemory).bool = memory.get(tar.indexOfFirstOperand).integer != memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].integer != memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.RNEQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).real != memory.get(tar.indexOfSecondOperand).real;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].real != memory[tar.indexOfSecondOperand].real;
                 break;
             case ThreeAddressCode.Commands.BNEQ:
-                memory.get(tar.indexInMemory).bool  = memory.get(tar.indexOfFirstOperand).bool != memory.get(tar.indexOfSecondOperand).bool;
+                memory[tar.indexInMemory].bool = memory[tar.indexOfFirstOperand].bool != memory[tar.indexOfSecondOperand].bool;
                 break;
 
             case ThreeAddressCode.Commands.CONITR:
-                memory.get(tar.indexOfFirstOperand).real =  memory.get(tar.indexOfSecondOperand).integer;
+                memory[tar.indexOfFirstOperand].real = memory[tar.indexOfSecondOperand].integer;
                 break;
             case ThreeAddressCode.Commands.CALL:
                 if(standartFunctions.containsKey(tar.label)){
                     standartFunctions.get(tar.label).run();
-
-                    // тут потом реализуй функции
-
                 }
                 // пользовательские функции
                 else if(labelAddresses.containsKey(tar.label)){
@@ -197,26 +221,34 @@ public class SimpleVirtualMachine {
                 }
                 else throw new RuntimeException("Function " + tar.label + " not found");
                 break;
-            case ThreeAddressCode.Commands.PARAM:
-                params.push(memory.get(tar.indexInMemory));
-                break;
 
+            case ThreeAddressCode.Commands.PARAM:
+                params.push(memory[tar.indexInMemory]);
+                break;
             case ThreeAddressCode.Commands.IIF:
-                if(memory.get(tar.indexInMemory).bool){
+                if(memory[tar.indexInMemory].bool){
                     var address = labelAddresses.get(tar.label);
                     if(address != null)
                         programCounter = address - 1;
+                    else throw new RuntimeException("Label " + tar.label + " not found");
                 }
-                else throw new RuntimeException("Label " + tar.label + " not found");
                 break;
             case ThreeAddressCode.Commands.IFN:
-                if(!memory.get(tar.indexInMemory).bool){
+                if(!memory[tar.indexInMemory].bool){
                     var address = labelAddresses.get(tar.label);
                     if(address != null)
                         programCounter = address - 1;
+                    else throw new RuntimeException("Label " + tar.label + " not found");
                 }
-                else throw new RuntimeException("Label " + tar.label + " not found");
                 break;
+
+            case ThreeAddressCode.Commands.PUSH:
+                params.push(memory[tar.indexInMemory]);
+                break;
+            case ThreeAddressCode.Commands.POP:
+                if (params.size() > 0)
+                    params.pop();
+
 
             case ThreeAddressCode.Commands.LABEL:
                 break;
@@ -229,11 +261,11 @@ public class SimpleVirtualMachine {
             case ThreeAddressCode.Commands.STOP:
                 break;
 
-            default: throw new ExecutionControl.NotImplementedException("Command" + tar.command + " not implemented!");
+            default: throw new RuntimeException("Command " + tar.command + " not implemented!");
         }
     }
-
     public void startProgram(ArrayList<ThreeAddressCode> program) throws Exception {
+        initialize();
         loadProgram(program);
         run();
     }

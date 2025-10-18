@@ -239,7 +239,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         node.cond.visitP(this);
         var condTemp = tempCounter - 1;
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IIF, condTemp, endLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condTemp, endLabel));
         node.stat.visitP(this);
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.GOTO, startLabel));
 

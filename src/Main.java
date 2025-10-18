@@ -8,6 +8,7 @@ import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
 import VirtualMachine.*;
+import com.sun.tools.attach.VirtualMachine;
 
 import java.util.ArrayList;
 
@@ -98,44 +99,20 @@ public class Main {
     }
 
     public static void fourthTest() throws Exception{
-        String text = "i = 111; sum = 1; n = 100000000;" +
+        String text = "i = 1; sum = 1; n = 10000000;" +
                 "while (i<n) do {sum += 1/i; i += 1} ;" +
-                "Print(sum);" +
-                "if (i == 1) then { Print(sum) }"
-                +"else { Print(52) };"
-                +"k = 100;"
-                +"for(d = 0; d < k; d += 1) do { sum += 1; sum += 1 };"
-                +"Print(sum)";
+                "Print(sum)";
 
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
             var progr = par.mainProgram();
-            progr.visitP(new SemanticCheck());
-
-            // ТЕСТИРОВАНИЕ VIRTUAL MACHINE
-            System.out.println("======> Virtual Machine Test <======");
-
-            // Создаем визитор для генерации TAC
-            ThreeAddressVisitor tacVisitor = new ThreeAddressVisitor();
-            progr.visitP(tacVisitor);
-            tacVisitor.Stop(); // Завершаем генерацию кода
-
-            ArrayList<ThreeAddressCode> tacCode = tacVisitor.getCode();
-
-            System.out.println("\nРезультат выполнения VM:");
-            SimpleVirtualMachine.loadProgram(tacCode);
+            var generator = new ThreeAddressVisitor();
+            progr.visitP(generator);
+            generator.Stop();
+            SimpleVirtualMachine.initialize();
+            SimpleVirtualMachine.loadProgram(generator.getCode());
             SimpleVirtualMachine.run();
-
-            System.out.println("\n" + "=".repeat(50));
-
-            // Для сравнения запускаем старый интерпретатор
-            System.out.println("======> Старый интерпретатор <======");
-            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
-            var pp = new PrettyPrinterSecond();
-            rooti.execute();
-            System.out.println(progr.visit(pp));
-
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
