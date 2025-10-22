@@ -4,23 +4,37 @@ import Basic.*;
 import SemanticCheckLogic.CalcTypes;
 import SemanticCheckLogic.SymbolTable;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Stack;
 
 public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
-    private int tempCounter = 0;
+    private int tempCounter = 100;
     private int labelCounter = 0;
     private Hashtable<String, Integer> labelAddresses = new Hashtable<String, Integer>();
-    private Hashtable<String, Integer> variavleAddreses = new Hashtable<String, Integer>();
+    private Hashtable<String, Integer> variableAddresses = new Hashtable<String, Integer>();
     private ArrayList<ThreeAddressCode> code = new ArrayList<ThreeAddressCode>();
     private int nextVariableAddress = 0;
 
-    private int newTemp(){ return tempCounter++; }
+    private Stack<Integer> resultStack = new Stack<Integer>();
+
+    private int newTemp(){
+        int temp = tempCounter++;
+        return temp;
+    }
+
+    private void pushResult(int tempIndex) {
+        resultStack.push(tempIndex);
+    }
+
+    private int popResult() {
+        return resultStack.pop();
+    }
+
     private String newLabel(){ return "L" + labelCounter++; }
     private int getVariableAddress(String name){
-        if(variavleAddreses.get(name) == null)
-            variavleAddreses.put(name, nextVariableAddress++);
-        return variavleAddreses.get(name);
+        if(variableAddresses.get(name) == null)
+            variableAddresses.put(name, nextVariableAddress++);
+        return variableAddresses.get(name);
     }
     public ArrayList<ThreeAddressCode> getCode(){
         return code;
@@ -32,16 +46,15 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
 
     @Override public void visitBinOp(ASTNodes.BinOpNode node) throws Exception{
         node.left.visitP(this);
-        int left = tempCounter - 1;
+        int left = popResult();
 
         node.right.visitP(this);
-        int right = tempCounter - 1;
+        int right = popResult();
 
         int res = newTemp();
 
         var leftType = CalcTypes.calcType(node.left);
         var rightType = CalcTypes.calcType(node.right);
-        var resType = CalcTypes.calcType(node);
 
         if(leftType == SymbolTable.SemanticType.IntType && rightType == SymbolTable.SemanticType.IntType){
             switch (node.op){
@@ -118,6 +131,9 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
             code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONITR, left, convert));
             left = convert;
             leftType = SymbolTable.SemanticType.DoubleType;
+            // Повторно выполняем операцию с преобразованными типами
+            visitBinOpAfterConversion(node, left, right, res);
+            return;
         }
 
         else if(leftType == SymbolTable.SemanticType.DoubleType && rightType == SymbolTable.SemanticType.IntType){
@@ -125,7 +141,47 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
             code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONITR, right, convert));
             right = convert;
             rightType = SymbolTable.SemanticType.DoubleType;
+            visitBinOpAfterConversion(node, left, right, res);
+            return;
         }
+
+        pushResult(res);
+    }
+
+    private void visitBinOpAfterConversion(ASTNodes.BinOpNode node, int left, int right, int res) throws Exception {
+        switch (node.op){
+            case LexerUnit.TokenType.PLUS:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RADD, left, right, res));
+                break;
+            case LexerUnit.TokenType.MINUS:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RSUB, left, right, res));
+                break;
+            case LexerUnit.TokenType.MULTIPLE:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RMUL, left, right, res));
+                break;
+            case LexerUnit.TokenType.DIVIDE:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RDIV, left, right, res));
+                break;
+            case LexerUnit.TokenType.LESS:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RLT, left, right, res));
+                break;
+            case LexerUnit.TokenType.GREATER:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RGT, left, right, res));
+                break;
+            case LexerUnit.TokenType.EQUAL:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.REQ, left, right, res));
+                break;
+            case LexerUnit.TokenType.NOTEQUAL:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RNEQ, left, right, res));
+                break;
+            case LexerUnit.TokenType.GREATEREQUAL:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RGEQ, left, right, res));
+                break;
+            case LexerUnit.TokenType.LESSEQUAL:
+                code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RLEQ, left, right, res));
+                break;
+        }
+        pushResult(res);
     }
 
     public void visitStatementList(ASTNodes.StatementListNode node) throws  Exception{
@@ -141,11 +197,13 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
     public void visitInt(ASTNodes.IntNode node) throws  Exception{
         int temp = newTemp();
         code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, temp, node.value));
+        pushResult(temp);
     }
 
     public void visitDouble(ASTNodes.DoubleNode node) throws  Exception{
         int temp = newTemp();
         code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, temp, node.value));
+        pushResult(temp);
     }
 
     public void visitId(ASTNodes.IdNode node) throws  Exception{
@@ -155,71 +213,93 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         ThreeAddressCode.Commands command = varType == SymbolTable.SemanticType.DoubleType ?
                 ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
         code.add(ThreeAddressCode.createAssign(command, temp, address));
+        pushResult(temp);
     }
 
     public void visitAssign(ASTNodes.AssignNode node) throws  Exception{
         node.expr.visitP(this);
-        var exprType = CalcTypes.calcType(node.expr);
-        var exprRes = tempCounter - 1;
+        int exprResult = popResult();
         int address = getVariableAddress(node.id.name);
+        var exprType = CalcTypes.calcType(node.expr);
 
         if(exprType == SymbolTable.SemanticType.DoubleType)
-            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.RASS, address, exprRes));
+            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.RASS, address, exprResult));
         else if(exprType == SymbolTable.SemanticType.IntType)
-            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.IASS, address, exprRes));
+            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.IASS, address, exprResult));
         else if(exprType == SymbolTable.SemanticType.BoolType)
-            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BASS, address, exprRes));
+            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BASS, address, exprResult));
+
+        pushResult(address);
     }
 
     public void visitAssignOperation(ASTNodes.AssignOperationNode node) throws  Exception{
-        node.expr.visitP(this);
         int address = getVariableAddress(node.id.name);
         var varType = CalcTypes.calcType(node.id);
-        var varValue = newTemp();
-        var exprType = CalcTypes.calcType(node.expr);
-        var exprRes = tempCounter - 1;
 
-        ThreeAddressCode.Commands command = varType == SymbolTable.SemanticType.DoubleType ?
+        int currentValueTemp = newTemp();
+        ThreeAddressCode.Commands loadCommand = varType == SymbolTable.SemanticType.DoubleType ?
                 ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
-        code.add(ThreeAddressCode.createAssign(command, varValue, address)); // текущее значение переменной
+        code.add(ThreeAddressCode.createAssign(loadCommand, currentValueTemp, address));
+
+        // Вычисляем выражение
+        node.expr.visitP(this);
+        int exprResult = popResult();
+        var exprType = CalcTypes.calcType(node.expr);
 
         if(varType == SymbolTable.SemanticType.DoubleType && exprType == SymbolTable.SemanticType.IntType){
             int convert = newTemp();
-            code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONITR, exprRes, convert));
-            exprRes = convert;
+            code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONITR, exprResult, convert));
+            exprResult = convert;
         }
 
         int operationResult = newTemp();
 
         if(varType == SymbolTable.SemanticType.DoubleType){
             switch (node.op) {
-                case '+': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RASSADD, varValue, exprRes, operationResult)); break;
-                case '-': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RASSSUB, varValue, exprRes, operationResult)); break;
-                case '*': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RASSMUL, varValue, exprRes, operationResult)); break;
-                case '/': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RASSDIV, varValue, exprRes, operationResult)); break;
+                case '+':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RADD, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '-':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RSUB, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '*':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RMUL, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '/':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.RDIV, currentValueTemp, exprResult, operationResult));
+                    break;
             }
         }
-
         else if(varType == SymbolTable.SemanticType.IntType){
             switch (node.op) {
-                case '+': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IASSADD, varValue, exprRes, operationResult)); break;
-                case '-': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IASSSUB, varValue, exprRes, operationResult)); break;
-                case '*': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IASSMUL, varValue, exprRes, operationResult)); break;
-                case '/': code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IASSDIV, varValue, exprRes, operationResult)); break;
+                case '+':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IADD, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '-':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ISUB, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '*':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IMUL, currentValueTemp, exprResult, operationResult));
+                    break;
+                case '/':
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IDIV, currentValueTemp, exprResult, operationResult));
+                    break;
             }
         }
 
-        var endCommand = varType == SymbolTable.SemanticType.DoubleType ? ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
-        code.add(ThreeAddressCode.createAssign(endCommand, address, operationResult)); // сохранение результата
+        ThreeAddressCode.Commands storeCommand = varType == SymbolTable.SemanticType.DoubleType ?
+                ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
+        code.add(ThreeAddressCode.createAssign(storeCommand, address, operationResult));
+        pushResult(address);
     }
 
     public void visitIf(ASTNodes.IfNode node) throws  Exception{
         node.cond.visitP(this);
-        var condTemp = tempCounter - 1;
+        int condResult = popResult();
         var elseLabel = newLabel();
         var endLabel = newLabel();
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IIF, condTemp, elseLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IIF, condResult, elseLabel));
         node.then.visitP(this);
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.GOTO, endLabel));
 
@@ -227,7 +307,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         if(node.elseif != null)
             node.elseif.visitP(this);
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.GOTO, endLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.LABEL, endLabel));
     }
 
     public void visitWhile(ASTNodes.WhileNode node) throws  Exception{
@@ -237,9 +317,9 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.LABEL, startLabel));
 
         node.cond.visitP(this);
-        var condTemp = tempCounter - 1;
+        int condResult = popResult();
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condTemp, endLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condResult, endLabel));
         node.stat.visitP(this);
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.GOTO, startLabel));
 
@@ -251,15 +331,20 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         var endLabel = newLabel();
 
         node.start.visitP(this);
+        popResult();
+
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.LABEL, startLabel));
 
         node.condition.visitP(this);
-        var condTemp = tempCounter - 1;
+        int condResult = popResult();
 
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condTemp, endLabel));
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.IFN, condResult, endLabel));
 
         node.body.visitP(this);
+        popResult();
+
         node.increment.visitP(this);
+        popResult();
 
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.GOTO, startLabel));
 
@@ -269,20 +354,21 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
     public void visitProcCall(ASTNodes.ProcCallNode node) throws  Exception{
         for(var curr: node.pars.lst){
             curr.visitP(this);
-            var currTemp = tempCounter - 1;
+            int currTemp = popResult();
             code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.PARAM, currTemp));
         }
-        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.CALL, 0, node.name.name)); // процедура ничего не возвращает
+        code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.CALL, 0, node.name.name));
     }
 
     public void visitFuncCall(ASTNodes.FuncCallNode node) throws  Exception{
         for(var curr: node.pars.lst){
             curr.visitP(this);
-            var currTemp = tempCounter - 1;
+            int currTemp = popResult();
             code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.PARAM, currTemp));
         }
-        var resultTemp = tempCounter - 1;
+        int resultTemp = newTemp();
         code.add(ThreeAddressCode.create(ThreeAddressCode.Commands.CALL, resultTemp, node.name.name));
+        pushResult(resultTemp);
     }
 
     public void Stop(){

@@ -4,10 +4,13 @@ import jdk.jshell.spi.ExecutionControl;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 public class SimpleVirtualMachine {
     public static ValueType[] memory = new ValueType[1000];
+    private static Consumer<String> outputHandler = System.out::println;
 
     private static Hashtable<String, Integer> labelAddresses = new Hashtable<String, Integer>();
     private static Stack<Integer> calls = new Stack<Integer>();
@@ -19,7 +22,7 @@ public class SimpleVirtualMachine {
     }
     private static int programCounter = 0;
 
-    public static void loadProgram(ArrayList<ThreeAddressCode> pr){
+    public static void loadProgram(List<ThreeAddressCode> pr){
         labelAddresses.clear();
         for(int i = 0; i < pr.size(); i++){
             if(pr.get(i).command == ThreeAddressCode.Commands.LABEL
@@ -271,15 +274,15 @@ public class SimpleVirtualMachine {
     }
 
 
-    private static void executePrintFunction(){
-        if(!params.isEmpty()){
-            var value = params.pop();
-            if(value.type == ValueType.VarValueType.INTEGER)
-                System.out.print(value.integer);
-            else if(value.type == ValueType.VarValueType.REAL)
-                System.out.print(value.real);
-            else if(value.type == ValueType.VarValueType.BOOLEAN)
-                System.out.print(value.bool);
+    private static void executePrintFunction() {
+        if (!params.isEmpty()) {
+            ValueType value = params.peek();
+
+            if (Math.abs(value.real) > 0.000001) {
+                outputHandler.accept(String.format("%.6f", value.real));
+            } else {
+                outputHandler.accept(Integer.toString(value.integer));
+            }
         }
     }
 }

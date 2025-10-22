@@ -70,8 +70,8 @@ public class Main {
     }
 
     public static void thirdTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100000000;" +
-                "while (i<n) do {sum += 1/i; i += 1} ;" +
+        String text = "i = 1; sum = 123123; n = 100000000;" +
+                "while (i<n) do {sum += 1; i += 1} ;" +
                 "Print(sum);" +
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
@@ -98,15 +98,21 @@ public class Main {
     }
 
     public static void fourthTest() throws Exception{
-        String text = "i = 1; sum = 1; n = 10000000;" +
-                "while (i<n) do {sum += 1/i; i += 1} ;" +
-                "Print(sum)";
+        String text = "i = 1; sum = 1; n = 100000;" +
+                "while (i<n) do {sum += i; i += 1} ;" +
+                "Print(sum);" +
+                "if (i == 1) then { Print(sum) }"
+                +"else { Print(52) };"
+                +"k = 100;"
+                +"for(d = 1; d < k; d += 1) do { sum += 1 };"
+                +"Print(sum)";
 
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
             var progr = par.mainProgram();
             var generator = new ThreeAddressVisitor();
+            progr.visitP(new SemanticCheck());
             progr.visitP(generator);
             generator.Stop();
             SimpleVirtualMachine.initialize();
@@ -121,7 +127,9 @@ public class Main {
         }
     }
 
-    public static void sixthTest() throws Exception{
+
+    // LoggerVisitor Test
+    public static void fifthTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<100000000) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
@@ -149,7 +157,8 @@ public class Main {
         }
     }
 
-    public static void seventhTest() throws Exception{
+    // AssertVisitor Test
+    public static void sixthTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<n) do {sum += 1/i; i += 1} ;" +
                 "Print(sum);" +
@@ -178,19 +187,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-//        System.out.println("======> Без Interpret.InterpretTree <======");
-//        firstTest();
-//
-//        System.out.println("\n");
-//        System.out.println("======> Что-то похожее на с# <======");
-//        secondTest();
-//        System.out.println("\n");
-//        System.out.println("======> Pascal + Python <======");
-//        thirdTest();
-//
-//        System.out.println();
-//        fourthTest();
-//        sixthTest();
-        seventhTest();
+        thirdTest();
     }
 }

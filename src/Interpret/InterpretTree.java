@@ -536,8 +536,25 @@ public class InterpretTree {
 
         @Override
         public void execute() {
-            if ("Print".equals(name) && pars != null && !pars.lst.isEmpty()) {
-                System.out.println(pars.lst.get(0).evalReal());
+            if ("Print".equals(name) && pars != null) {
+                for (ExprNodeI expr : pars.lst) {
+                    // Пробуем разные типы по порядку
+                    try {
+                        System.out.print(expr.evalInt());
+                    } catch (Exception e1) {
+                        try {
+                            System.out.print(expr.evalReal());
+                        } catch (Exception e2) {
+                            try {
+                                System.out.print(expr.evalBool());
+                            } catch (Exception e3) {
+                                System.out.print("?");
+                            }
+                        }
+                    }
+                    System.out.print(" ");
+                }
+                System.out.println();
             }
         }
     }
