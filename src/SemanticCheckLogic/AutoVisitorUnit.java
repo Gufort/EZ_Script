@@ -7,6 +7,7 @@ public class AutoVisitorUnit implements ASTNodes.IVisitorP {
     @Override public void visitExprNode(ASTNodes.ExprNode node){}
     @Override public void visitStatementNode(ASTNodes.StatementNode node){}
     @Override public void visitInt(ASTNodes.IntNode node){}
+    @Override public void visitBigInt(ASTNodes.BigIntNode node){}
     @Override public void visitDouble(ASTNodes.DoubleNode node){}
     @Override public void visitId(ASTNodes.IdNode node) throws Exception{}
     @Override public void visitBinOp(ASTNodes.BinOpNode node) throws Exception{

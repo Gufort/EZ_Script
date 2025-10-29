@@ -64,6 +64,8 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return Double.toString(node.value);
     }
     @Override
+    public String visitBigInt(ASTNodes.BigIntNode node) throws Exception { return String.valueOf(node.value); }
+    @Override
     public String visitId(ASTNodes.IdNode node) {
         return node.name.toString();
     }

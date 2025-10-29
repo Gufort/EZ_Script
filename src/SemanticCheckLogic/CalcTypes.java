@@ -69,6 +69,9 @@ public class CalcTypes {
         @Override public SymbolTable.SemanticType visitDouble(ASTNodes.DoubleNode node) {
             return SymbolTable.SemanticType.DoubleType;
         }
+        @Override public SymbolTable.SemanticType visitBigInt(ASTNodes.BigIntNode node) throws Exception {
+            return SymbolTable.SemanticType.IntType;
+        }
         @Override public SymbolTable.SemanticType visitId(ASTNodes.IdNode node) throws Exception{
             if(SymbolTable.SymTable.get(node.name) == null)
                 CompilerException.semanticError("Идентификатор " + node.name + " не определен", node.position);

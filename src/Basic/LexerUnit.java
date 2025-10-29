@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 public class LexerUnit {
     public enum TokenType {
-        INT, DOUBLELITERAL, STRINGLITERAL, ID,
+        INT, BIGINTEGERLITERAL, DOUBLELITERAL, STRINGLITERAL, ID,
         PLUS, MINUS, MULTIPLE, DIVIDE, DOT,
         SEMICOLON, COMMA, LEFT_PAREN, RIGHT_PAREN, LEFT_BRACKET, RIGHT_BRACKET, COLON, LEFT_BRACE, RIGHT_BRACE,
         ASSIGN, ASSIGNPLUS, ASSIGNMINUS, ASSIGNMULTIPLE, ASSIGNDIVIDE,
@@ -28,6 +28,7 @@ public class LexerUnit {
         KeyWords.put("double", TokenType.ID);
         KeyWords.put("string", TokenType.ID);
         KeyWords.put("bool", TokenType.ID);
+        KeyWords.put("bi", TokenType.ID);
         KeyWords.put("function", TokenType.ID);
 
         KeyWords.put("if", TokenType.IF);
@@ -131,6 +132,15 @@ public class LexerUnit {
         private void getNumber(){
             while(Character.isDigit(peekChar()))
                 advance();
+
+            if(peekChar() == 'b' && peekNextChar() == 'i'){
+                advance();
+                advance();
+                var value = code.substring(start, currentPosition - 2); // без bi
+                addToken(TokenType.BIGINTEGERLITERAL, value);
+                return;
+            }
+
             if(peekChar() == '.' && Character.isDigit(peekNextChar())){
                 advance();
                 while(Character.isDigit(peekChar()))

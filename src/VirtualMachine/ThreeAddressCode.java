@@ -1,11 +1,14 @@
 package VirtualMachine;
 
+import java.math.BigInteger;
+
 public class ThreeAddressCode {
     public enum Commands{
         //  = const
         ICAAS, // int
         RCAAS, // double
         BCAAS, // bool
+        BICAAS,// bigInteger
 
         //  =
         IASS, // int assignment
@@ -93,6 +96,7 @@ public class ThreeAddressCode {
     public int IValue;
     public double RValue;
     public boolean BValue;
+    public BigInteger BIValue;
     public String label;
     public ValueType value;
 
@@ -125,6 +129,14 @@ public class ThreeAddressCode {
         code.command = command;
         code.indexInMemory = indexInMemory;
         code.RValue = RValue;
+        return code;
+    }
+
+    public static ThreeAddressCode createConst(Commands command, int indexInMemory, String BIValue) {
+        var code = new ThreeAddressCode();
+        code.command = command;
+        code.indexInMemory = indexInMemory;
+        code.BIValue = new BigInteger(BIValue);
         return code;
     }
 

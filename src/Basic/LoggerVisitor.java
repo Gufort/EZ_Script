@@ -59,6 +59,10 @@ public class LoggerVisitor implements ASTNodes.IVisitorP {
         logger.info(getIndent() + "Visiting DoubleNode " + node.value + " at " + node.position.toString());
     }
 
+    @Override public void visitBigInt(ASTNodes.BigIntNode node) throws Exception {
+        logger.info(getIndent() + "Visiting BigIntNode " + node.value + " at " + node.position.toString());
+    }
+
     @Override public void visitId(ASTNodes.IdNode node) throws Exception {
         logger.info(getIndent() + "Visiting IdNode " + node.name + " at " + node.position.toString());
     }

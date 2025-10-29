@@ -1,6 +1,6 @@
 package Basic;
 
-import Pointers.*;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -14,6 +14,7 @@ public abstract class ASTNodes {
         T visitStatementList(StatementListNode stl) throws Exception;
         T visitExprList(ExprListNode exlist) throws Exception;
         T visitInt(IntNode n) throws Exception;
+        T visitBigInt(BigIntNode n) throws Exception;
         T visitDouble(DoubleNode d) throws Exception;
         T visitId(IdNode id) throws Exception;
         T visitAssign(AssignNode ass) throws Exception;
@@ -33,6 +34,7 @@ public abstract class ASTNodes {
         void visitStatementList(StatementListNode stl) throws Exception ;
         void visitExprList(ExprListNode exlist) throws Exception ;
         void visitInt(IntNode n) throws Exception ;
+        void visitBigInt(BigIntNode n) throws Exception ;
         void visitDouble(DoubleNode d) throws Exception ;
         void visitId(IdNode id) throws Exception;
         void visitAssign(AssignNode ass) throws Exception;
@@ -192,11 +194,30 @@ public abstract class ASTNodes {
         public String toString() { return String.valueOf(value); }
     }
 
+    public static class BigIntNode extends ExprNode{
+        public String value;
+        public Position position;
+
+        public BigIntNode(String value, Position position) {
+            this.value = value;
+            this.position = position;
+        }
+
+        public BigIntNode(String value) throws Exception { this.value = value; }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitBigInt(this); }
+
+        @Override
+        public void visitP(IVisitorP v) throws Exception { v.visitBigInt(this); }
+
+        @Override
+        public String toString() { return value.toString(); }
+    }
+
     public static class IdNode extends ExprNode{
         public String name;
         public int ind; // индекс в таблице varValues
-        public IntPointer pi;
-        public RealPointer pr;
 
         public IdNode(String name, Position position) {
             this.name = name;

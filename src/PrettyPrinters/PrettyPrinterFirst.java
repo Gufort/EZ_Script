@@ -66,6 +66,10 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return String.valueOf(node.value);
     }
     @Override
+    public String visitBigInt(ASTNodes.BigIntNode node) throws Exception {
+        return String.valueOf(node.value);
+    }
+    @Override
     public String visitId(ASTNodes.IdNode node) throws Exception {
         return node.name.toString();
     }

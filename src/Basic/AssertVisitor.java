@@ -85,6 +85,12 @@ public class AssertVisitor implements ASTNodes.IVisitorP {
     }
 
     @Override
+    public void visitBigInt(ASTNodes.BigIntNode node) throws Exception {
+        assert node != null : "BAD: BigIntNode cannot be null";
+        System.out.println("GOOD: visitBigInt validation passed successfully - value: " + node.value);
+    }
+
+    @Override
     public void visitId(ASTNodes.IdNode node) throws Exception {
         assert node != null : "BAD: IdNode cannot be null";
         assert node.name != null : "BAD: IdNode name cannot be null";

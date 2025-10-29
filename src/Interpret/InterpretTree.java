@@ -1,5 +1,6 @@
 package Interpret;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +13,7 @@ public class InterpretTree {
         public int evalInt() { return 0; }
         public double evalReal() { return 0.0; }
         public boolean evalBool() { return false; }
+        public BigInteger evalBigInteger() { return new BigInteger("0"); }
     }
 
     public static abstract class StatementNodeI extends NodeI {
@@ -557,7 +559,7 @@ public class InterpretTree {
         public void execute() {
             if ("print".equals(name) && pars != null) {
                 for (ExprNodeI expr : pars.lst) {
-                    // Пробуем разные типы по порядку
+                    // Пробуем разные типы по порядку (добавить BigInteger)
                     try {
                         System.out.print(expr.evalInt());
                     } catch (Exception e1) {
@@ -567,7 +569,11 @@ public class InterpretTree {
                             try {
                                 System.out.print(expr.evalBool());
                             } catch (Exception e3) {
-                                System.out.print("?");
+                                try {
+                                    System.out.print(expr.evalBigInteger()); // ДОБАВИТЬ
+                                } catch (Exception e4) {
+                                    System.out.print("?");
+                                }
                             }
                         }
                     }
@@ -577,4 +583,275 @@ public class InterpretTree {
             }
         }
     }
+
+
+
+
+
+    public static class BigIntegerNodeI extends ExprNodeI {
+        public BigInteger val;
+        public BigIntegerNodeI(BigInteger value) { this.val = value; }
+        public BigIntegerNodeI(String value) { this.val = new BigInteger(value); }
+        @Override public BigInteger evalBigInteger() { return val; }
+    }
+
+    // Идентификатор для BigInteger
+    public static class IdNodeBI extends ExprNodeI {
+        public int address;
+        public IdNodeBI(int address) { this.address = address; }
+        @Override public BigInteger evalBigInteger() { return Memory.getBigInteger(address); }
+    }
+
+    // Бинарные операции для BigInteger
+    public static class PlusBIBI extends BinOpNodeI {
+        public PlusBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().add(right.evalBigInteger());
+        }
+    }
+
+    public static class PlusBIC extends BinOpNodeI {
+        public BigInteger value;
+        public PlusBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().add(value);
+        }
+    }
+
+    public static class MinusBIBI extends BinOpNodeI {
+        public MinusBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().subtract(right.evalBigInteger());
+        }
+    }
+
+    public static class MinusBIC extends BinOpNodeI {
+        public BigInteger value;
+        public MinusBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().subtract(value);
+        }
+    }
+
+    public static class MultBIBI extends BinOpNodeI {
+        public MultBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().multiply(right.evalBigInteger());
+        }
+    }
+
+    public static class MultBIC extends BinOpNodeI {
+        public BigInteger value;
+        public MultBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().multiply(value);
+        }
+    }
+
+    public static class DivBIBI extends BinOpNodeI {
+        public DivBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().divide(right.evalBigInteger());
+        }
+    }
+
+    public static class DivBIC extends BinOpNodeI {
+        public BigInteger value;
+        public DivBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().divide(value);
+        }
+    }
+
+    public static class ModBIBI extends BinOpNodeI {
+        public ModBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().mod(right.evalBigInteger());
+        }
+    }
+
+    // Операции сравнения для BigInteger
+    public static class LessBIBI extends BinOpNodeI {
+        public LessBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(right.evalBigInteger()) < 0;
+        }
+    }
+
+    public static class GreaterBIBI extends BinOpNodeI {
+        public GreaterBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(right.evalBigInteger()) > 0;
+        }
+    }
+
+    public static class LessEqBIBI extends BinOpNodeI {
+        public LessEqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(right.evalBigInteger()) <= 0;
+        }
+    }
+
+    public static class GreaterEqBIBI extends BinOpNodeI {
+        public GreaterEqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(right.evalBigInteger()) >= 0;
+        }
+    }
+
+    public static class EqBIBI extends BinOpNodeI {
+        public EqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().equals(right.evalBigInteger());
+        }
+    }
+
+    public static class NotEqBIBI extends BinOpNodeI {
+        public NotEqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public boolean evalBool() {
+            return !left.evalBigInteger().equals(right.evalBigInteger());
+        }
+    }
+
+    // Присваивание для BigInteger
+    public static class AssignBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setBigInteger(address, expr.evalBigInteger());
+        }
+    }
+
+    public static class AssignBigIntegerCNodeI extends StatementNodeI {
+        public int address;
+        public BigInteger val;
+
+        public AssignBigIntegerCNodeI(int address, BigInteger val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setBigInteger(address, val);
+        }
+    }
+
+    // Составные операторы присваивания для BigInteger
+    public static class AssignPlusBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignPlusBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.add(expr.evalBigInteger()));
+        }
+    }
+
+    public static class AssignPlusBigIntegerCNodeI extends StatementNodeI {
+        public int address;
+        public BigInteger val;
+
+        public AssignPlusBigIntegerCNodeI(int address, BigInteger val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.add(val));
+        }
+    }
+
+    public static class AssignMinusBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMinusBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.subtract(expr.evalBigInteger()));
+        }
+    }
+
+    public static class AssignMultBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMultBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.multiply(expr.evalBigInteger()));
+        }
+    }
+
+    // Преобразования типов
+    public static class IntToBigIntegerNodeI extends ExprNodeI {
+        public ExprNodeI expr;
+        public IntToBigIntegerNodeI(ExprNodeI expr) { this.expr = expr; }
+        @Override public BigInteger evalBigInteger() {
+            return BigInteger.valueOf(expr.evalInt());
+        }
+    }
+
+    public static class BigIntegerToIntNodeI extends ExprNodeI {
+        public ExprNodeI expr;
+        public BigIntegerToIntNodeI(ExprNodeI expr) { this.expr = expr; }
+        @Override public int evalInt() {
+            return expr.evalBigInteger().intValue();
+        }
+    }
+
+    // Специальные функции для BigInteger
+    public static class BigIntegerPowNodeI extends BinOpNodeI {
+        public BigIntegerPowNodeI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().pow(right.evalInt());
+        }
+    }
+
+    public static class BigIntegerGcdNodeI extends BinOpNodeI {
+        public BigIntegerGcdNodeI(ExprNodeI left, ExprNodeI right) { super(left, right); }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().gcd(right.evalBigInteger());
+        }
+    }
+
+
 }

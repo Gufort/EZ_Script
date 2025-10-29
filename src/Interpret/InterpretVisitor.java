@@ -173,6 +173,11 @@ public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
     }
 
     @Override
+    public Object visitBigInt(ASTNodes.BigIntNode node) throws Exception {
+        return node.value;
+    }
+
+    @Override
     public Object visitId(ASTNodes.IdNode node) throws Exception {
         SymbolTable.SymbolInfo symInfo = SymbolTable.SymTable.get(node.name);
         if (symInfo == null) {

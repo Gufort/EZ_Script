@@ -2,12 +2,13 @@ package SemanticCheckLogic;
 
 import Interpret.Memory;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 public class SymbolTable {
-    public enum SemanticType{IntType, DoubleType, BoolType,
+    public enum SemanticType{IntType, DoubleType, BoolType, BigIntegerType,
                             StringType, ObjectType, BadType, NoType, AnyType}
     public enum KindType{VarName, FuncName}
 
@@ -51,6 +52,8 @@ public class SymbolTable {
             case BoolType:
                 address = Memory.allocateBoolean((Boolean) initialValue);
                 break;
+            case BigIntegerType:
+                address = Memory.allocateBigInteger((BigInteger) initialValue);
         }
         return address;
     }

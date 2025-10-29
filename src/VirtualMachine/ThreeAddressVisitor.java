@@ -239,6 +239,11 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         pushResult(temp);
     }
 
+    public void visitBigInt(ASTNodes.BigIntNode node) throws  Exception{
+        int temp = newTemp();
+        code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BICAAS, temp, node.value));
+    }
+
     public void visitId(ASTNodes.IdNode node) throws Exception {
         int address = getVariableAddress(node.name);
         // Создаем временную переменную и копируем значение

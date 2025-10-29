@@ -2,6 +2,8 @@ package Basic;
 
 import ExceptionLogic.CompilerException;
 
+import java.math.BigInteger;
+
 public class Parser extends ParserBase {
     public Parser(LexerUnit.Lexer lexer) throws Exception {
         super(lexer);
@@ -159,6 +161,9 @@ public class Parser extends ParserBase {
         }
         else if (at(LexerUnit.TokenType.DOUBLELITERAL)) {
             return new ASTNodes.DoubleNode(Double.parseDouble(nextLexem().value.toString()), position);
+        }
+        else if(at(LexerUnit.TokenType.BIGINTEGERLITERAL)){
+            return new ASTNodes.BigIntNode(nextLexem().value.toString(), position);
         }
         else if (at(LexerUnit.TokenType.LEFT_PAREN)) {
             nextLexem();

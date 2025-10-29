@@ -1,9 +1,6 @@
 package Interpret;
 
 import Basic.ASTNodes;
-import Pointers.BooleanPointer;
-import Pointers.IntPointer;
-import Pointers.RealPointer;
 import SemanticCheckLogic.CalcTypes;
 import SemanticCheckLogic.SymbolTable;
 
@@ -50,6 +47,11 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     @Override
     public InterpretTree.NodeI visitDouble(ASTNodes.DoubleNode d) throws Exception {
         return new InterpretTree.DoubleNodeI(d.value);
+    }
+
+    @Override
+    public InterpretTree.BigIntegerNodeI visitBigInt(ASTNodes.BigIntNode b) throws Exception {
+        return new InterpretTree.BigIntegerNodeI(b.value);
     }
 
     @Override
