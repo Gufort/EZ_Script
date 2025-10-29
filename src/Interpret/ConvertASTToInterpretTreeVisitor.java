@@ -53,21 +53,6 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     }
 
     @Override
-    public InterpretTree.NodeI visitId(ASTNodes.IdNode id) throws Exception {
-        SymbolTable.SemanticType typ = SymbolTable.SymTable.get(id.name).semanticType;
-        switch (typ) {
-            case IntType:
-                return new InterpretTree.IdNodeI(new IntPointer(SymbolTable.VarValues.get(id.ind).integer));
-            case DoubleType:
-                return new InterpretTree.IdNodeR(new RealPointer(SymbolTable.VarValues.get(id.ind).real));
-            case BoolType:
-                return new InterpretTree.IdNodeB(new BooleanPointer(SymbolTable.VarValues.get(id.ind).bool));
-            default:
-                return null;
-        }
-    }
-
-    @Override
     public InterpretTree.NodeI visitWhile(ASTNodes.WhileNode whn) throws Exception {
         return new InterpretTree.WhileNodeI(
                 (InterpretTree.ExprNodeI) whn.cond.visit(this),
@@ -100,22 +85,41 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     }
 
     @Override
+    public InterpretTree.NodeI visitId(ASTNodes.IdNode id) throws Exception {
+        SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(id.name);
+        if (sym == null) return null;
+
+        switch (sym.semanticType) {
+            case IntType:
+                return new InterpretTree.IdNodeI(sym.address);
+            case DoubleType:
+                return new InterpretTree.IdNodeR(sym.address);
+            case BoolType:
+                return new InterpretTree.IdNodeB(sym.address);
+            default:
+                return null;
+        }
+    }
+
+    @Override
     public InterpretTree.NodeI visitAssign(ASTNodes.AssignNode ass) throws Exception {
-        SymbolTable.SemanticType typ = SymbolTable.SymTable.get(ass.id.name).semanticType;
-        switch (typ) {
+        SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(ass.id.name);
+        if (sym == null) return null;
+
+        switch (sym.semanticType) {
             case IntType:
                 return new InterpretTree.AssignIntNodeI(
-                        new IntPointer(SymbolTable.VarValues.get(ass.id.ind).integer),
+                        sym.address,
                         (InterpretTree.ExprNodeI) ass.expr.visit(this)
                 );
             case DoubleType:
                 return new InterpretTree.AssignRealNodeI(
-                        new RealPointer(SymbolTable.VarValues.get(ass.id.ind).real),
+                        sym.address,
                         (InterpretTree.ExprNodeI) ass.expr.visit(this)
                 );
             case BoolType:
                 return new InterpretTree.AssignBoolNodeI(
-                        new BooleanPointer(SymbolTable.VarValues.get(ass.id.ind).bool),
+                        sym.address,
                         (InterpretTree.ExprNodeI) ass.expr.visit(this)
                 );
             default:
@@ -125,40 +129,34 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
 
     @Override
     public InterpretTree.NodeI visitAssignOperation(ASTNodes.AssignOperationNode ass) throws Exception {
+        SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(ass.id.name);
+        if (sym == null) return null;
+
         if (ass.op == '+') {
-            SymbolTable.SemanticType typ = SymbolTable.SymTable.get(ass.id.name).semanticType;
-            if (typ == SymbolTable.SemanticType.IntType) {
-                if (ass.expr instanceof ASTNodes.IntNode) {
-                    ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                    return new InterpretTree.AssignPlusIntCNodeI(
-                            new IntPointer(SymbolTable.VarValues.get(ass.id.ind).integer),
-                            intNode.value
-                    );
-                } else {
-                    return new InterpretTree.AssignPlusIntNodeI(
-                            new IntPointer(SymbolTable.VarValues.get(ass.id.ind).integer),
-                            (InterpretTree.ExprNodeI) ass.expr.visit(this)
-                    );
-                }
-            } else if (typ == SymbolTable.SemanticType.DoubleType) {
-                if (ass.expr instanceof ASTNodes.IntNode) {
-                    ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                    return new InterpretTree.AssignPlusRealIntCNodeI(
-                            new RealPointer(SymbolTable.VarValues.get(ass.id.ind).real),
-                            intNode.value
-                    );
-                } else if (ass.expr instanceof ASTNodes.DoubleNode) {
-                    ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
-                    return new InterpretTree.AssignPlusRealCNodeI(
-                            new RealPointer(SymbolTable.VarValues.get(ass.id.ind).real),
-                            doubleNode.value
-                    );
-                } else {
-                    return new InterpretTree.AssignPlusRealNodeI(
-                            new RealPointer(SymbolTable.VarValues.get(ass.id.ind).real),
-                            (InterpretTree.ExprNodeI) ass.expr.visit(this)
-                    );
-                }
+            switch (sym.semanticType) {
+                case IntType:
+                    if (ass.expr instanceof ASTNodes.IntNode) {
+                        ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                        return new InterpretTree.AssignPlusIntCNodeI(sym.address, intNode.value);
+                    } else {
+                        return new InterpretTree.AssignPlusIntNodeI(
+                                sym.address,
+                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                        );
+                    }
+                case DoubleType:
+                    if (ass.expr instanceof ASTNodes.IntNode) {
+                        ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                        return new InterpretTree.AssignPlusRealIntCNodeI(sym.address, intNode.value);
+                    } else if (ass.expr instanceof ASTNodes.DoubleNode) {
+                        ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
+                        return new InterpretTree.AssignPlusRealCNodeI(sym.address, doubleNode.value);
+                    } else {
+                        return new InterpretTree.AssignPlusRealNodeI(
+                                sym.address,
+                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                        );
+                    }
             }
         }
         return null;

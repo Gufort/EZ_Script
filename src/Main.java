@@ -70,24 +70,27 @@ public class Main {
     }
 
     public static void thirdTest() throws Exception{
-        String text = "i = 1; sum = 123123; n = 100000000;" +
+        String text = "i = 1; sum = 0; n = 100000000;" +
                 "while (i<n) do {sum += 1; i += 1} ;" +
-                "Print(sum);" +
-                "if (i == 1) then { Print(sum) }"
-                +"else { Print(52) };"
+                "print(sum);" +
+                "if (i == 1) then { print(sum) }"
+                +"else { print(52) };"
                 +"k = 100;"
-                +"for(d = 0; d < k; d += 1) do { sum += 1; sum += 1 };"
-                +"Print(sum)";
+                +"for(d = 0; d < k; d += 1) do { sum += 1 };"
+                +"print(sum)";
 
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
             var progr = par.mainProgram();
+            var start = System.currentTimeMillis();
             progr.visitP(new SemanticCheck());
             InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
+            var end = System.currentTimeMillis();
             var pp = new PrettyPrinterSecond();
             rooti.execute();
             System.out.println(progr.visit(pp));
+            System.out.println(end-start + " time");
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
@@ -98,26 +101,26 @@ public class Main {
     }
 
     public static void fourthTest() throws Exception{
-        String text = "i = 1; sum = 1; n = 100000;" +
-                "while (i<n) do {sum += i; i += 1} ;" +
+        String text = "i = 1; sum = 0; n = 100000000;" +
+                "while (i<n) do {sum += 1; i += 1} ;" +
                 "Print(sum);" +
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
                 +"k = 100;"
-                +"for(d = 1; d < k; d += 1) do { sum += 1 };"
+                +"for(d = 0; d < k; d += 1) do { sum += 1 };"
                 +"Print(sum)";
-
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
             var progr = par.mainProgram();
+            var start = System.currentTimeMillis();
             var generator = new ThreeAddressVisitor();
             progr.visitP(new SemanticCheck());
             progr.visitP(generator);
             generator.Stop();
-            SimpleVirtualMachine.initialize();
-            SimpleVirtualMachine.loadProgram(generator.getCode());
-            SimpleVirtualMachine.run();
+            SimpleVirtualMachine.startProgram(generator.getCode());
+            var end = System.currentTimeMillis();
+            System.out.println(end-start + " time");
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
@@ -188,5 +191,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         thirdTest();
+        fourthTest();
     }
 }

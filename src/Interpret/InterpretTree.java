@@ -1,11 +1,8 @@
 package Interpret;
 
-import Pointers.BooleanPointer;
-import Pointers.IntPointer;
-import Pointers.RealPointer;
-
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class InterpretTree {
     public static abstract class NodeI {
@@ -31,6 +28,7 @@ public class InterpretTree {
         }
     }
 
+    // Бинарные операции
     public static class PlusII extends BinOpNodeI {
         public PlusII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public int evalInt() { return left.evalInt() + right.evalInt(); }
@@ -69,7 +67,6 @@ public class InterpretTree {
         @Override public double evalReal() { return left.evalReal() + value; }
     }
 
-    // Аналогично для других операций
     public static class MinusII extends BinOpNodeI {
         public MinusII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public int evalInt() { return left.evalInt() - right.evalInt(); }
@@ -295,171 +292,193 @@ public class InterpretTree {
 
     // Идентификаторы
     public static class IdNodeI extends ExprNodeI {
-        public IntPointer pi;
-        public IdNodeI(IntPointer pi) { this.pi = pi; }
-        @Override public int evalInt() { return pi.getValue(); }
+        public int address;
+        public IdNodeI(int address) { this.address = address; }
+        @Override public int evalInt() { return Memory.getInt(address); }
     }
 
     public static class IdNodeR extends ExprNodeI {
-        public RealPointer pr;
-        public IdNodeR(RealPointer pr) { this.pr = pr; }
-        @Override public double evalReal() { return pr.getValue(); }
+        public int address;
+        public IdNodeR(int address) { this.address = address; }
+        @Override public double evalReal() { return Memory.getDouble(address); }
     }
 
     public static class IdNodeB extends ExprNodeI {
-        public BooleanPointer pb;
-        public IdNodeB(BooleanPointer pb) { this.pb = pb; }
-        @Override public boolean evalBool() { return pb.getValue(); }
-    }
-
-    public static class IdNodeFun extends ExprNodeI {
-        public String name;
-        public IdNodeFun(String name) { this.name = name; }
+        public int address;
+        public IdNodeB(int address) { this.address = address; }
+        @Override public boolean evalBool() { return Memory.getBoolean(address); }
     }
 
     // Операторы присваивания
     public static class AssignIntNodeI extends StatementNodeI {
-        public IntPointer pi;
+        public int address;
         public ExprNodeI expr;
 
-        public AssignIntNodeI(IntPointer pi, ExprNodeI expr) {
-            this.pi = pi;
+        public AssignIntNodeI(int address, ExprNodeI expr) {
+            this.address = address;
             this.expr = expr;
         }
 
         @Override
         public void execute() {
-            pi.setValue(expr.evalInt());
-        }
-    }
-
-    public static class AssignIntCNodeI extends StatementNodeI {
-        public IntPointer pi;
-        public int val;
-
-        public AssignIntCNodeI(IntPointer pi, int val) {
-            this.pi = pi;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            pi.setValue(val);
+            Memory.setInt(address, expr.evalInt());
         }
     }
 
     public static class AssignRealNodeI extends StatementNodeI {
-        public RealPointer pr;
+        public int address;
         public ExprNodeI expr;
 
-        public AssignRealNodeI(RealPointer pr, ExprNodeI expr) {
-            this.pr = pr;
+        public AssignRealNodeI(int address, ExprNodeI expr) {
+            this.address = address;
             this.expr = expr;
         }
 
         @Override
         public void execute() {
-            pr.setValue(expr.evalReal());
-        }
-    }
-
-    public static class AssignRealCNodeI extends StatementNodeI {
-        public RealPointer pr;
-        public double val;
-
-        public AssignRealCNodeI(RealPointer pr, double val) {
-            this.pr = pr;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            pr.setValue(val);
-        }
-    }
-
-    public static class AssignRealIntCNodeI extends StatementNodeI {
-        public RealPointer pr;
-        public int val;
-
-        public AssignRealIntCNodeI(RealPointer pr, int val) {
-            this.pr = pr;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            pr.setValue((double) val);  // Явное приведение int к double
+            Memory.setDouble(address, expr.evalReal());
         }
     }
 
     public static class AssignBoolNodeI extends StatementNodeI {
-        public BooleanPointer pb;
+        public int address;
         public ExprNodeI expr;
 
-        public AssignBoolNodeI(BooleanPointer pb, ExprNodeI expr) {
-            this.pb = pb;
+        public AssignBoolNodeI(int address, ExprNodeI expr) {
+            this.address = address;
             this.expr = expr;
         }
 
         @Override
         public void execute() {
-            pb.setValue(expr.evalBool());
+            Memory.setBoolean(address, expr.evalBool());
         }
     }
 
-    public static class AssignPlusIntNodeI extends AssignIntNodeI {
-        public AssignPlusIntNodeI(IntPointer pi, ExprNodeI expr) {
-            super(pi, expr);
+    // Присваивание с константами
+    public static class AssignIntCNodeI extends StatementNodeI {
+        public int address;
+        public int val;
+
+        public AssignIntCNodeI(int address, int val) {
+            this.address = address;
+            this.val = val;
         }
 
         @Override
         public void execute() {
-            pi.setValue(pi.getValue() + expr.evalInt());
+            Memory.setInt(address, val);
         }
     }
 
-    public static class AssignPlusRealNodeI extends AssignRealNodeI {
-        public AssignPlusRealNodeI(RealPointer pr, ExprNodeI expr) {
-            super(pr, expr);
+    public static class AssignRealCNodeI extends StatementNodeI {
+        public int address;
+        public double val;
+
+        public AssignRealCNodeI(int address, double val) {
+            this.address = address;
+            this.val = val;
         }
 
         @Override
         public void execute() {
-            pr.setValue(pr.getValue() + expr.evalReal());
+            Memory.setDouble(address, val);
         }
     }
 
-    public static class AssignPlusIntCNodeI extends AssignIntCNodeI {
-        public AssignPlusIntCNodeI(IntPointer pi, int val) {
-            super(pi, val);
+    public static class AssignRealIntCNodeI extends StatementNodeI {
+        public int address;
+        public int val;
+
+        public AssignRealIntCNodeI(int address, int val) {
+            this.address = address;
+            this.val = val;
         }
 
         @Override
         public void execute() {
-            pi.setValue(pi.getValue() + val);
+            Memory.setDouble(address, (double) val);
         }
     }
 
-    public static class AssignPlusRealCNodeI extends AssignRealCNodeI {
-        public AssignPlusRealCNodeI(RealPointer pr, double val) {
-            super(pr, val);
+    // Составные операторы присваивания
+    public static class AssignPlusIntNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignPlusIntNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
         }
 
         @Override
         public void execute() {
-            pr.setValue(pr.getValue() + val);
+            int current = Memory.getInt(address);
+            Memory.setInt(address, current + expr.evalInt());
         }
     }
 
-    public static class AssignPlusRealIntCNodeI extends AssignRealIntCNodeI {
-        public AssignPlusRealIntCNodeI(RealPointer pr, int val) {
-            super(pr, val);
+    public static class AssignPlusRealNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignPlusRealNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
         }
 
         @Override
         public void execute() {
-            pr.setValue(pr.getValue() + val);
+            double current = Memory.getDouble(address);
+            Memory.setDouble(address, current + expr.evalReal());
+        }
+    }
+
+    public static class AssignPlusIntCNodeI extends StatementNodeI {
+        public int address;
+        public int val;
+
+        public AssignPlusIntCNodeI(int address, int val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            int current = Memory.getInt(address);
+            Memory.setInt(address, current + val);
+        }
+    }
+
+    public static class AssignPlusRealCNodeI extends StatementNodeI {
+        public int address;
+        public double val;
+
+        public AssignPlusRealCNodeI(int address, double val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            Memory.setDouble(address, current + val);
+        }
+    }
+
+    public static class AssignPlusRealIntCNodeI extends StatementNodeI {
+        public int address;
+        public int val;
+
+        public AssignPlusRealIntCNodeI(int address, int val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            Memory.setDouble(address, current + val);
         }
     }
 
@@ -503,22 +522,22 @@ public class InterpretTree {
     }
 
     public static class ForNodeI extends StatementNodeI {
-        public ExprNodeI condition;
-        public StatementNodeI body;
         public StatementNodeI start;
+        public ExprNodeI condition;
         public StatementNodeI increment;
+        public StatementNodeI body;
 
         public ForNodeI(StatementNodeI start, ExprNodeI condition, StatementNodeI increment, StatementNodeI body) {
             this.start = start;
             this.condition = condition;
-            this.body = body;
             this.increment = increment;
+            this.body = body;
         }
 
         @Override
         public void execute() {
             start.execute();
-            while(condition.evalBool()) {
+            while (condition.evalBool()) {
                 body.execute();
                 increment.execute();
             }
@@ -536,7 +555,7 @@ public class InterpretTree {
 
         @Override
         public void execute() {
-            if ("Print".equals(name) && pars != null) {
+            if ("print".equals(name) && pars != null) {
                 for (ExprNodeI expr : pars.lst) {
                     // Пробуем разные типы по порядку
                     try {
