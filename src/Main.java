@@ -189,8 +189,33 @@ public class Main {
         }
     }
 
+    public static void seventhTest() throws Exception{
+        String text = "i = 1; sum = 0; n = 100000000; bigInt = 1234bi; "+
+            "while(i < n) do {bigInt += 1; i += 1 }; "+
+            "print(bigInt); bigInt = bigInt * 2; print(bigInt)";
+
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            var start = System.currentTimeMillis();
+            progr.visitP(new SemanticCheck());
+            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
+            var end = System.currentTimeMillis();
+            var pp = new PrettyPrinterSecond();
+            rooti.execute();
+            System.out.println(progr.visit(pp));
+            System.out.println(end-start + " time");
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        thirdTest();
-        fourthTest();
+        seventhTest();
     }
 }

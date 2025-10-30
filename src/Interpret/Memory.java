@@ -3,7 +3,7 @@ package Interpret;
 import java.math.BigInteger;
 
 public class Memory {
-    private static final int MEMORY_SIZE = 100;
+    private static int MEMORY_SIZE = 100;
     private static Object[] memory = new Object[MEMORY_SIZE];
     private static int nextAddress = 0;
 

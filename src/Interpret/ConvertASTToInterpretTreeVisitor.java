@@ -4,6 +4,8 @@ import Basic.ASTNodes;
 import SemanticCheckLogic.CalcTypes;
 import SemanticCheckLogic.SymbolTable;
 
+import java.math.BigInteger;
+
 public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<InterpretTree.NodeI> {
 
     @Override
@@ -98,6 +100,8 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                 return new InterpretTree.IdNodeR(sym.address);
             case BoolType:
                 return new InterpretTree.IdNodeB(sym.address);
+            case BigIntegerType:
+                return new InterpretTree.IdNodeBI(sym.address);
             default:
                 return null;
         }
@@ -121,6 +125,11 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                 );
             case BoolType:
                 return new InterpretTree.AssignBoolNodeI(
+                        sym.address,
+                        (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                );
+            case BigIntegerType:
+                return new InterpretTree.AssignBigIntegerNodeI(
                         sym.address,
                         (InterpretTree.ExprNodeI) ass.expr.visit(this)
                 );
@@ -159,6 +168,16 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                                 (InterpretTree.ExprNodeI) ass.expr.visit(this)
                         );
                     }
+                case BigIntegerType:
+                    if (ass.expr instanceof ASTNodes.BigIntNode) {
+                        ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
+                        return new InterpretTree.AssignPlusBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
+                    } else {
+                        return new InterpretTree.AssignPlusBigIntegerNodeI(
+                                sym.address,
+                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                        );
+                    }
             }
         }
         return null;
@@ -176,7 +195,6 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
         InterpretTree.ExprNodeI linterpr = (InterpretTree.ExprNodeI) bin.left.visit(this);
         InterpretTree.ExprNodeI rinterpr = (InterpretTree.ExprNodeI) bin.right.visit(this);
 
-        // Кодировка типов как в Pascal
         int sit = 0;
         if (rt == SymbolTable.SemanticType.DoubleType) {
             sit += 1;

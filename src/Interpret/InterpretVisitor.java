@@ -4,6 +4,8 @@ import Basic.ASTNodes;
 import ExceptionLogic.CompilerException;
 import SemanticCheckLogic.SymbolTable;
 
+import java.math.BigInteger;
+
 public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
 
     @Override
@@ -192,6 +194,8 @@ public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
                 return Memory.getDouble(symInfo.address);
             case BoolType:
                 return Memory.getBoolean(symInfo.address);
+            case BigIntegerType:
+                return Memory.getBigInteger(symInfo.address);
             default:
                 return null;
         }
@@ -221,6 +225,9 @@ public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
                 break;
             case BoolType:
                 Memory.setBoolean(symInfo.address, (Boolean) value);
+                break;
+            case BigIntegerType:
+                Memory.setBigInteger(symInfo.address, (BigInteger) value);
                 break;
         }
         return null;

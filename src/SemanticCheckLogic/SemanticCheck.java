@@ -10,10 +10,8 @@ public class SemanticCheck extends AutoVisitorUnit {
         node.expr.visitP(this);
 
         if (SymbolTable.SymTable.get(node.id.name) == null) {
-            // Переменная не определена - создаем новую
             SymbolTable.SemanticType type = CalcTypes.calcTypeVis(node.expr);
 
-            // Определяем начальное значение по типу
             Object initialValue;
             switch(type) {
                 case IntType:
@@ -30,7 +28,6 @@ public class SemanticCheck extends AutoVisitorUnit {
                     return;
             }
 
-            // Выделяем память и создаем запись в таблице символов
             int address = SymbolTable.allocateVariable(type, initialValue);
 
             SymbolTable.SymTable.put(node.id.name,
@@ -42,11 +39,9 @@ public class SemanticCheck extends AutoVisitorUnit {
                     )
             );
 
-            // Сохраняем адрес в узле идентификатора
             node.id.ind = address;
 
         } else {
-            // Переменная уже определена - проверяем типы
             SymbolTable.SymbolInfo symInfo = SymbolTable.SymTable.get(node.id.name);
 
             if (symInfo.kindType == SymbolTable.KindType.FuncName) {
@@ -63,7 +58,6 @@ public class SemanticCheck extends AutoVisitorUnit {
                 return;
             }
 
-            // Сохраняем адрес в узле идентификатора
             node.id.ind = symInfo.address;
         }
     }
@@ -103,7 +97,6 @@ public class SemanticCheck extends AutoVisitorUnit {
             return;
         }
 
-        // Сохраняем адрес в узле идентификатора
         node.id.ind = symInfo.address;
     }
 
@@ -150,10 +143,6 @@ public class SemanticCheck extends AutoVisitorUnit {
             return;
         }
 
-        // Сохраняем адрес в узле идентификатора
         node.ind = symInfo.address;
-
-        // Убираем инициализацию указателей, так как они больше не используются
-        // В новой системе мы работаем напрямую с адресами памяти
     }
 }
