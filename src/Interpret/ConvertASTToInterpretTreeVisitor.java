@@ -143,42 +143,160 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(ass.id.name);
         if (sym == null) return null;
 
-        if (ass.op == '+') {
-            switch (sym.semanticType) {
-                case IntType:
-                    if (ass.expr instanceof ASTNodes.IntNode) {
-                        ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                        return new InterpretTree.AssignPlusIntCNodeI(sym.address, intNode.value);
-                    } else {
-                        return new InterpretTree.AssignPlusIntNodeI(
-                                sym.address,
-                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
-                        );
-                    }
-                case DoubleType:
-                    if (ass.expr instanceof ASTNodes.IntNode) {
-                        ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                        return new InterpretTree.AssignPlusRealIntCNodeI(sym.address, intNode.value);
-                    } else if (ass.expr instanceof ASTNodes.DoubleNode) {
-                        ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
-                        return new InterpretTree.AssignPlusRealCNodeI(sym.address, doubleNode.value);
-                    } else {
-                        return new InterpretTree.AssignPlusRealNodeI(
-                                sym.address,
-                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
-                        );
-                    }
-                case BigIntegerType:
-                    if (ass.expr instanceof ASTNodes.BigIntNode) {
-                        ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
-                        return new InterpretTree.AssignPlusBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
-                    } else {
-                        return new InterpretTree.AssignPlusBigIntegerNodeI(
-                                sym.address,
-                                (InterpretTree.ExprNodeI) ass.expr.visit(this)
-                        );
-                    }
-            }
+        switch (ass.op) {
+            case '+':
+                switch (sym.semanticType) {
+                    case IntType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignPlusIntCNodeI(sym.address, intNode.value);
+                        } else {
+                            return new InterpretTree.AssignPlusIntNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case DoubleType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignPlusRealIntCNodeI(sym.address, intNode.value);
+                        } else if (ass.expr instanceof ASTNodes.DoubleNode) {
+                            ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
+                            return new InterpretTree.AssignPlusRealCNodeI(sym.address, doubleNode.value);
+                        } else {
+                            return new InterpretTree.AssignPlusRealNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case BigIntegerType:
+                        if (ass.expr instanceof ASTNodes.BigIntNode) {
+                            ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
+                            return new InterpretTree.AssignPlusBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
+                        } else if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignPlusBigIntegerCNodeI(sym.address, BigInteger.valueOf(intNode.value));
+                        } else {
+                            return new InterpretTree.AssignPlusBigIntegerNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                }
+                break;
+
+            case '-':
+                switch (sym.semanticType) {
+                    case IntType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMinusIntCNodeI(sym.address, intNode.value);
+                        } else {
+                            return new InterpretTree.AssignMinusIntNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case DoubleType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMinusRealIntCNodeI(sym.address, intNode.value);
+                        } else if (ass.expr instanceof ASTNodes.DoubleNode) {
+                            ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
+                            return new InterpretTree.AssignMinusRealCNodeI(sym.address, doubleNode.value);
+                        } else {
+                            return new InterpretTree.AssignMinusRealNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case BigIntegerType:
+                        if (ass.expr instanceof ASTNodes.BigIntNode) {
+                            ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
+                            return new InterpretTree.AssignMinusBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
+                        } else if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMinusBigIntegerCNodeI(sym.address, BigInteger.valueOf(intNode.value));
+                        } else {
+                            return new InterpretTree.AssignMinusBigIntegerNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                }
+                break;
+
+            case '*':
+                switch (sym.semanticType) {
+                    case IntType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMultIntCNodeI(sym.address, intNode.value);
+                        } else {
+                            return new InterpretTree.AssignMultIntNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case DoubleType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMultRealIntCNodeI(sym.address, intNode.value);
+                        } else if (ass.expr instanceof ASTNodes.DoubleNode) {
+                            ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
+                            return new InterpretTree.AssignMultRealCNodeI(sym.address, doubleNode.value);
+                        } else {
+                            return new InterpretTree.AssignMultRealNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case BigIntegerType:
+                        if (ass.expr instanceof ASTNodes.BigIntNode) {
+                            ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
+                            return new InterpretTree.AssignMultBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
+                        } else if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignMultBigIntegerCNodeI(sym.address, BigInteger.valueOf(intNode.value));
+                        } else {
+                            return new InterpretTree.AssignMultBigIntegerNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                }
+                break;
+
+            case '/':
+                switch (sym.semanticType) {
+                    case DoubleType:
+                        if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignDivRealIntCNodeI(sym.address, intNode.value);
+                        } else if (ass.expr instanceof ASTNodes.DoubleNode) {
+                            ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
+                            return new InterpretTree.AssignDivRealCNodeI(sym.address, doubleNode.value);
+                        } else {
+                            return new InterpretTree.AssignDivRealNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                    case BigIntegerType:
+                        if (ass.expr instanceof ASTNodes.BigIntNode) {
+                            ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) ass.expr;
+                            return new InterpretTree.AssignDivBigIntegerCNodeI(sym.address, new BigInteger(bigIntNode.value));
+                        } else if (ass.expr instanceof ASTNodes.IntNode) {
+                            ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
+                            return new InterpretTree.AssignDivBigIntegerCNodeI(sym.address, BigInteger.valueOf(intNode.value));
+                        } else {
+                            return new InterpretTree.AssignDivBigIntegerNodeI(
+                                    sym.address,
+                                    (InterpretTree.ExprNodeI) ass.expr.visit(this)
+                            );
+                        }
+                }
+                break;
         }
         return null;
     }
@@ -200,11 +318,15 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
             sit += 1;
         } else if (rt == SymbolTable.SemanticType.BoolType) {
             sit += 2;
+        } else if (rt == SymbolTable.SemanticType.BigIntegerType) {
+            sit += 4; // Добавляем код для BigInteger
         }
         if (lt == SymbolTable.SemanticType.DoubleType) {
             sit += 3;
         } else if (lt == SymbolTable.SemanticType.BoolType) {
             sit += 6;
+        } else if (lt == SymbolTable.SemanticType.BigIntegerType) {
+            sit += 12; // Добавляем код для BigInteger
         }
 
         switch (bin.op) {
@@ -223,6 +345,23 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                         return new InterpretTree.PlusIR(linterpr, rinterpr);
                     case 3:
                         return new InterpretTree.PlusRI(linterpr, rinterpr);
+                    case 16: // BigInteger + BigInteger
+                        if (rinterpr instanceof InterpretTree.BigIntegerNodeI) {
+                            InterpretTree.BigIntegerNodeI ric = (InterpretTree.BigIntegerNodeI) rinterpr;
+                            return new InterpretTree.PlusBIC(linterpr, ric.val);
+                        } else {
+                            return new InterpretTree.PlusBIBI(linterpr, rinterpr);
+                        }
+                    case 8:
+                        return new InterpretTree.PlusBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.PlusBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
                 break;
 
@@ -232,6 +371,17 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.MinusRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.MinusIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.MinusRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.MinusBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.MinusBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.MinusBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
                 break;
 
@@ -241,6 +391,17 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.MultRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.MultIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.MultRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.MultBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.MultBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.MultBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
                 break;
 
@@ -250,6 +411,17 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.DivRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.DivIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.DivRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.DivBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.DivBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.DivBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
                 break;
 
@@ -260,8 +432,9 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 1: return new InterpretTree.EqIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.EqRI(linterpr, rinterpr);
                     case 8: return new InterpretTree.EqBB(linterpr, rinterpr);
+                    case 16: return new InterpretTree.EqBIBI(linterpr, rinterpr);
+                    case 20:
                 }
-                break;
 
             case NOTEQUAL:
                 switch (sit) {
@@ -270,8 +443,9 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 1: return new InterpretTree.NotEqIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.NotEqRI(linterpr, rinterpr);
                     case 8: return new InterpretTree.NotEqBB(linterpr, rinterpr);
+                    case 16: return new InterpretTree.NotEqBIBI(linterpr, rinterpr);
+                    case 20:
                 }
-                break;
 
             case LESS:
                 switch (sit) {
@@ -279,8 +453,18 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.LessRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.LessIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.LessRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.LessBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.LessBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.LessBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
-                break;
 
             case LESSEQUAL:
                 switch (sit) {
@@ -288,8 +472,18 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.LessEqRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.LessEqIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.LessEqRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.LessEqBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.LessEqBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.LessEqBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
-                break;
 
             case GREATER:
                 switch (sit) {
@@ -297,8 +491,18 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.GreaterRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.GreaterIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.GreaterRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.GreaterBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.GreaterBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.GreaterBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
-                break;
 
             case GREATEREQUAL:
                 switch (sit) {
@@ -306,11 +510,21 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case 4: return new InterpretTree.GreaterEqRR(linterpr, rinterpr);
                     case 1: return new InterpretTree.GreaterEqIR(linterpr, rinterpr);
                     case 3: return new InterpretTree.GreaterEqRI(linterpr, rinterpr);
+                    case 16: return new InterpretTree.GreaterEqBIBI(linterpr, rinterpr);
+                    case 8:
+                        return new InterpretTree.GreaterEqBIBI(
+                                new InterpretTree.IntToBigIntegerNodeI(linterpr),
+                                rinterpr
+                        );
+                    case 12:
+                        return new InterpretTree.GreaterEqBIBI(
+                                linterpr,
+                                new InterpretTree.IntToBigIntegerNodeI(rinterpr)
+                        );
                 }
-                break;
         }
 
-        return null;
+        throw new Exception("Неизвестная операция или комбинация типов: " + bin.op + " для типов " + lt + " и " + rt);
     }
 
     @Override

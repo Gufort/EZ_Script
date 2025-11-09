@@ -12,6 +12,8 @@ public class CalcTypes {
             return true;
         else if(left == SymbolTable.SemanticType.DoubleType && right == SymbolTable.SemanticType.IntType)
             return true;
+        else if(left == SymbolTable.SemanticType.BigIntegerType && right == SymbolTable.SemanticType.IntType)
+            return true;
         else if(left == SymbolTable.SemanticType.ObjectType && right != SymbolTable.SemanticType.NoType
                 && right != SymbolTable.SemanticType.BadType)
             return true;
@@ -70,7 +72,7 @@ public class CalcTypes {
             return SymbolTable.SemanticType.DoubleType;
         }
         @Override public SymbolTable.SemanticType visitBigInt(ASTNodes.BigIntNode node) throws Exception {
-            return SymbolTable.SemanticType.IntType;
+            return SymbolTable.SemanticType.BigIntegerType;
         }
         @Override public SymbolTable.SemanticType visitId(ASTNodes.IdNode node) throws Exception{
             if(SymbolTable.SymTable.get(node.name) == null)
@@ -146,8 +148,8 @@ public class CalcTypes {
                 var left = calcType(bin.left);
                 var right = calcType(bin.right);
                 if(Arrays.stream(LexerUnit.ArithmeticOperations).anyMatch(op -> op == bin.op)){
-                    if(Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
-                    Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
+                    if(!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
+                    !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
                         yield  SymbolTable.SemanticType.BadType;
                     else if(bin.op == LexerUnit.TokenType.DIVIDE)
                         yield  SymbolTable.SemanticType.NoType;

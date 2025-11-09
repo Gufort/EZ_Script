@@ -28,7 +28,7 @@ public class SymbolTable {
             this.params = params;
         }
     }
-    public static SemanticType[] NumTypes = new SemanticType[]{SemanticType.IntType, SemanticType.DoubleType};
+    public static SemanticType[] NumTypes = new SemanticType[]{SemanticType.IntType, SemanticType.DoubleType, SemanticType.BigIntegerType };
     public static Dictionary<String, SymbolInfo> SymTable = new Hashtable<String, SymbolInfo>(){};
 
     public static void initStandardFunctionsTable(){

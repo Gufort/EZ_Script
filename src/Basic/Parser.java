@@ -95,6 +95,21 @@ public class Parser extends ParserBase {
             var expr = expr();
             return new ASTNodes.AssignOperationNode(id, expr, '+', pos);
         }
+        else if(at(LexerUnit.TokenType.ASSIGNMINUS)){
+            nextLexem();
+            var expr = expr();
+            return new ASTNodes.AssignOperationNode(id, expr, '-', pos);
+        }
+        else if(at(LexerUnit.TokenType.ASSIGNMULTIPLE)){
+            nextLexem();
+            var expr = expr();
+            return new ASTNodes.AssignOperationNode(id, expr, '*', pos);
+        }
+        else if(at(LexerUnit.TokenType.ASSIGNDIVIDE)){
+            nextLexem();
+            var expr = expr();
+            return new ASTNodes.AssignOperationNode(id, expr, '/', pos);
+        }
         else if(at(LexerUnit.TokenType.LEFT_PAREN)){
             nextLexem();
             var expr = exprList();
