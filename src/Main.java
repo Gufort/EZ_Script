@@ -218,7 +218,7 @@ public class Main {
     }
 
     public static void eighthTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100; bigInt = 1234bi; "+
+        String text = "i = 1; sum = 0; n = 100000000; bigInt = 1234bi; "+
                 "while(i < n) do {bigInt += 1; i += 1 }; "+
                 "print(bigInt); print(bigInt)";
         var lex = new LexerUnit.Lexer(text);
@@ -259,7 +259,8 @@ public class Main {
 //        System.out.println("_________________");
 //        thirdTest();
 //        System.out.println("_________________");
-        seventhTest();
+        eighthTest();
+
 
 
         long startTime = System.nanoTime();

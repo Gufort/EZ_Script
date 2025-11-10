@@ -3,6 +3,8 @@ package VirtualMachine;
 import Basic.*;
 import SemanticCheckLogic.CalcTypes;
 import SemanticCheckLogic.SymbolTable;
+
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Stack;
@@ -41,6 +43,17 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         put("DOUBLETYPE_DOUBLETYPE_LESSEQUAL", ThreeAddressCode.Commands.RLEQ);
         put("DOUBLETYPE_DOUBLETYPE_GREATEREQUAL", ThreeAddressCode.Commands.RGEQ);
 
+        put("BIGINT_BIGINT_PLUS", ThreeAddressCode.Commands.BIADD);
+        put("BIGINT_BIGINT_MINUS", ThreeAddressCode.Commands.BISUB);
+        put("BIGINT_BIGINT_MULTIPLE", ThreeAddressCode.Commands.BIMUL);
+        put("BIGINT_BIGINT_DIVIDE", ThreeAddressCode.Commands.BIDIV);
+        put("BIGINT_BIGINT_LESS", ThreeAddressCode.Commands.BILT);
+        put("BIGINT_BIGINT_GREATER", ThreeAddressCode.Commands.BIGT);
+        put("BIGINT_BIGINT_EQUAL", ThreeAddressCode.Commands.BIEQ);
+        put("BIGINT_BIGINT_NOTEQUAL", ThreeAddressCode.Commands.BINEQ);
+        put("BIGINT_BIGINT_LESSEQUAL", ThreeAddressCode.Commands.BILEQ);
+        put("BIGINT_BIGINT_GREATEREQUAL", ThreeAddressCode.Commands.BIGEQ);
+
         // Смешанные типы (int-double)
         put("INTEGER_DOUBLETYPE_PLUS", ThreeAddressCode.Commands.RADD);
         put("DOUBLETYPE_INTEGER_PLUS", ThreeAddressCode.Commands.RADD);
@@ -75,6 +88,11 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         put("DoubleType_-", ThreeAddressCode.Commands.RSUB);
         put("DoubleType_*", ThreeAddressCode.Commands.RMUL);
         put("DoubleType_/", ThreeAddressCode.Commands.RDIV);
+
+        put("BigIntType_+", ThreeAddressCode.Commands.BIADD);
+        put("BigIntType_-", ThreeAddressCode.Commands.BISUB);
+        put("BigIntType_*", ThreeAddressCode.Commands.BIMUL);
+        put("BigIntType_/", ThreeAddressCode.Commands.BIDIV);
     }};
 
     private int newTemp(){
@@ -209,10 +227,52 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
                         throw new Exception("Unsupported binary operation " + node.op + " for types " + leftType + " and " + rightType);
                 }
             }
+
+            else if(leftType == SymbolTable.SemanticType.BigIntegerType && rightType == SymbolTable.SemanticType.BigIntegerType){
+                switch (node.op){
+                    case LexerUnit.TokenType.PLUS:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIADD, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.MINUS:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BISUB, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.MULTIPLE:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIMUL, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.DIVIDE:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIDIV, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.LESS:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BILT, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.GREATER:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIGT, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.EQUAL:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIEQ, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.NOTEQUAL:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BINEQ, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.GREATEREQUAL:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIGEQ, left, right, res));
+                        break;
+                    case LexerUnit.TokenType.LESSEQUAL:
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BILEQ, left, right, res));
+                        break;
+                    default:
+                        throw new Exception("Unsupported binary operation " + node.op + " for types " + leftType + " and " + rightType);
+                }
+            }
+
             else {
                 throw new Exception("Unsupported binary operation " + node.op + " for types " + leftType + " and " + rightType);
             }
         }
+
+
+
+
 
         pushResult(res);
     }
@@ -242,6 +302,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
     public void visitBigInt(ASTNodes.BigIntNode node) throws  Exception{
         int temp = newTemp();
         code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BICAAS, temp, node.value));
+        pushResult(temp);
     }
 
     public void visitId(ASTNodes.IdNode node) throws Exception {
@@ -256,6 +317,8 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
             code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.IASS, temp, address));
         else if(varType == SymbolTable.SemanticType.BoolType)
             code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BASS, temp, address));
+        else if(varType == SymbolTable.SemanticType.BigIntegerType)
+            code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BIASS, temp, address));
 
         pushResult(temp);
     }
@@ -269,6 +332,9 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
 
             if (varType == SymbolTable.SemanticType.DoubleType) {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, address, (double)intNode.value));
+            } else if (varType == SymbolTable.SemanticType.BigIntegerType) {
+                BigInteger bigIntValue = BigInteger.valueOf(intNode.value);
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BCAAS, address, bigIntValue.toString()));
             } else {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, address, intNode.value));
             }
@@ -281,10 +347,28 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
 
             if (varType == SymbolTable.SemanticType.IntType) {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, address, (int)doubleNode.value));
+            } else if (varType == SymbolTable.SemanticType.BigIntegerType) {
+                BigInteger bigIntValue = BigInteger.valueOf((long) doubleNode.value);
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BCAAS, address, bigIntValue.toString()));
             } else {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, address, doubleNode.value));
             }
             pushResult(address);
+        }
+        else if(node.expr instanceof ASTNodes.BigIntNode) {
+            ASTNodes.BigIntNode bigIntNode = (ASTNodes.BigIntNode) node.expr;
+            int address = getVariableAddress(node.id.name);
+            var varType = CalcTypes.calcType(node.id);
+
+            BigInteger bigIntValue = new BigInteger(bigIntNode.value);
+
+            if (varType == SymbolTable.SemanticType.IntType) {
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, address, bigIntValue.intValue()));
+            }else if(varType == SymbolTable.SemanticType.DoubleType) {
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, address, bigIntValue.doubleValue()));
+            }else{
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BICAAS, address, bigIntNode.value));
+            }
         }
         else {
             node.expr.visitP(this);
@@ -298,6 +382,9 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
                 code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.IASS, address, exprResult));
             else if(exprType == SymbolTable.SemanticType.BoolType)
                 code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BASS, address, exprResult));
+            else if(exprType == SymbolTable.SemanticType.BigIntegerType)
+                code.add(ThreeAddressCode.createAssign(ThreeAddressCode.Commands.BIASS, address, exprResult));
+
 
             pushResult(address);
         }
@@ -362,6 +449,24 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
                         break;
                     case '/':
                         code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.IDIV, currentValueTemp, exprResult, operationResult));
+                        break;
+                    default:
+                        throw new Exception("Unsupported assignment operation '" + node.op + "' for type " + varType);
+                }
+            }
+            else if(varType == SymbolTable.SemanticType.BigIntegerType){
+                switch (node.op) {
+                    case '+':
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIADD, currentValueTemp, exprResult, operationResult));
+                        break;
+                    case '-':
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BISUB, currentValueTemp, exprResult, operationResult));
+                        break;
+                    case '*':
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIMUL, currentValueTemp, exprResult, operationResult));
+                        break;
+                    case '/':
+                        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.BIDIV, currentValueTemp, exprResult, operationResult));
                         break;
                     default:
                         throw new Exception("Unsupported assignment operation '" + node.op + "' for type " + varType);
