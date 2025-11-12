@@ -127,7 +127,7 @@ public class SimpleVirtualMachine {
                     memory[tar.indexInMemory].bigInteger = memory[tar.indexOfFirstOperand].bigInteger;
                 break;
 
-            // BigInteger assignment operations
+
             case ThreeAddressCode.Commands.BIASSADD:
                 if (tar.indexOfFirstOperand >= 0 && tar.indexOfSecondOperand >= 0)
                     memory[tar.indexInMemory].bigInteger = memory[tar.indexOfFirstOperand].bigInteger.add(memory[tar.indexOfSecondOperand].bigInteger);
@@ -149,7 +149,6 @@ public class SimpleVirtualMachine {
                 break;
 
 
-            // Integer assignment operations (existing)
             case ThreeAddressCode.Commands.IASSADD:
                 if (tar.indexOfFirstOperand >= 0 && tar.indexOfSecondOperand >= 0)
                     memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer + memory[tar.indexOfSecondOperand].integer;
@@ -189,7 +188,6 @@ public class SimpleVirtualMachine {
                 }
                 break;
 
-            // BigInteger arithmetic operations
             case ThreeAddressCode.Commands.BIADD:
                 if (tar.indexOfFirstOperand >= 0 && tar.indexOfSecondOperand >= 0)
                     memory[tar.indexInMemory].bigInteger = memory[tar.indexOfFirstOperand].bigInteger.add(memory[tar.indexOfSecondOperand].bigInteger);
@@ -210,7 +208,7 @@ public class SimpleVirtualMachine {
                 }
                 break;
 
-            // Integer arithmetic operations (existing)
+
             case ThreeAddressCode.Commands.IADD:
                 if (tar.indexOfFirstOperand >= 0 && tar.indexOfSecondOperand >= 0)
                     memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer + memory[tar.indexOfSecondOperand].integer;

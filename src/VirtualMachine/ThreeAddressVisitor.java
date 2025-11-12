@@ -272,8 +272,6 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
 
 
 
-
-
         pushResult(res);
     }
 
@@ -334,7 +332,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, address, (double)intNode.value));
             } else if (varType == SymbolTable.SemanticType.BigIntegerType) {
                 BigInteger bigIntValue = BigInteger.valueOf(intNode.value);
-                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BCAAS, address, bigIntValue.toString()));
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BICAAS, address, bigIntValue.toString()));
             } else {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, address, intNode.value));
             }
@@ -349,7 +347,7 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, address, (int)doubleNode.value));
             } else if (varType == SymbolTable.SemanticType.BigIntegerType) {
                 BigInteger bigIntValue = BigInteger.valueOf((long) doubleNode.value);
-                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BCAAS, address, bigIntValue.toString()));
+                code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.BICAAS, address, bigIntValue.toString()));
             } else {
                 code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.RCAAS, address, doubleNode.value));
             }
@@ -394,23 +392,39 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         int address = getVariableAddress(node.id.name);
         var varType = CalcTypes.calcType(node.id);
 
+        // Загружаем текущее значение переменной
         int currentValueTemp = newTemp();
-        ThreeAddressCode.Commands loadCommand = varType == SymbolTable.SemanticType.DoubleType ?
-                ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
+        ThreeAddressCode.Commands loadCommand;
+        if(varType == SymbolTable.SemanticType.DoubleType)
+            loadCommand = ThreeAddressCode.Commands.RASS;
+        else if(varType == SymbolTable.SemanticType.IntType)
+            loadCommand = ThreeAddressCode.Commands.IASS;
+        else if(varType == SymbolTable.SemanticType.BigIntegerType)
+            loadCommand = ThreeAddressCode.Commands.BIASS;
+        else
+            throw new Exception("Unsupported type for assignment operation: " + varType);
+
         code.add(ThreeAddressCode.createAssign(loadCommand, currentValueTemp, address));
 
+        // Вычисляем выражение
         node.expr.visitP(this);
         int exprResult = popResult();
         var exprType = CalcTypes.calcType(node.expr);
 
+        // Конвертируем типы если необходимо
         if(varType == SymbolTable.SemanticType.DoubleType && exprType == SymbolTable.SemanticType.IntType){
             int convert = newTemp();
             code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONITR, exprResult, convert));
             exprResult = convert;
         }
+        else if(varType == SymbolTable.SemanticType.IntType && exprType == SymbolTable.SemanticType.DoubleType){
+            int convert = newTemp();
+            code.add(ThreeAddressCode.createConvert(ThreeAddressCode.Commands.CONBITI, exprResult, convert));
+            exprResult = convert;
+        }
 
+        // Выполняем операцию
         int operationResult = newTemp();
-
         String key = varType.toString() + "_" + node.op;
         ThreeAddressCode.Commands operationCommand = assignOpTable.get(key);
 
@@ -477,8 +491,17 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
             }
         }
 
-        ThreeAddressCode.Commands storeCommand = varType == SymbolTable.SemanticType.DoubleType ?
-                ThreeAddressCode.Commands.RASS : ThreeAddressCode.Commands.IASS;
+        // Сохраняем результат обратно в переменную
+        ThreeAddressCode.Commands storeCommand;
+        if(varType == SymbolTable.SemanticType.DoubleType)
+            storeCommand = ThreeAddressCode.Commands.RASS;
+        else if(varType == SymbolTable.SemanticType.IntType)
+            storeCommand = ThreeAddressCode.Commands.IASS;
+        else if(varType == SymbolTable.SemanticType.BigIntegerType)
+            storeCommand = ThreeAddressCode.Commands.BIASS;
+        else
+            throw new Exception("Unsupported type for assignment operation: " + varType);
+
         code.add(ThreeAddressCode.createAssign(storeCommand, address, operationResult));
         pushResult(address);
     }

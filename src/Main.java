@@ -5,6 +5,8 @@ import Interpret.InterpretTree;
 import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
+
+import java.math.BigInteger;
 import java.util.logging.Logger;
 import VirtualMachine.*;
 import com.sun.tools.attach.VirtualMachine;
@@ -101,8 +103,8 @@ public class Main {
     }
 
     public static void fourthTest() throws Exception{
-        String text = "i = 0; sum = 0; n = 100000000;" +
-                "while (i<n) do {sum += i; i += 1} ;" +
+        String text = "i = 0; sum = 0.0; n = 100000000;" +
+                "while (i<n) do {sum = sum + 1.0; i += 1} ;" +
                 "Print(sum);" +
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
@@ -193,7 +195,7 @@ public class Main {
     public static void seventhTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000; bigInt = 1234bi; " +
             "while(i < n) do { bigInt += 1; i += 1 }; " +
-            "print(bigInt); bigInt *= 2; print(n)";
+            "print(bigInt); bigInt *= 2bi; print(n)";
 
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -218,9 +220,9 @@ public class Main {
     }
 
     public static void eighthTest() throws Exception{
-        String text = "i = 1; sum = 0; n = 100000000; bigInt = 1234bi; "+
-                "while(i < n) do {bigInt += 1; i += 1 }; "+
-                "print(bigInt); print(bigInt)";
+        String text = "i = 1; sum = 0; n = 1000000; bigInt = 1234bi; "+
+                "while(i < n) do {bigInt = bigInt + 1bi; i += 1 }; "+
+                "print(bigInt); bigInt *= 2bi; print(bigInt)";
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
@@ -243,12 +245,12 @@ public class Main {
         }
     }
 
-    private static int testLoop() {
+    private static BigInteger testLoop() {
         int i = 0;
-        int sum = 0;
-        int n = 100000000;
+        BigInteger sum = new BigInteger("0");
+        int n = 10000000;
         while(i < n) {
-            sum += i;
+            sum.add(sum.multiply(BigInteger.valueOf(i)));
             i++;
         }
         return sum;
@@ -259,12 +261,12 @@ public class Main {
 //        System.out.println("_________________");
 //        thirdTest();
 //        System.out.println("_________________");
-        eighthTest();
+        seventhTest();
 
 
 
         long startTime = System.nanoTime();
-        int result = testLoop();
+        var result = testLoop();
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1_000_000;
 

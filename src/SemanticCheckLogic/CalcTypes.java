@@ -139,39 +139,57 @@ public class CalcTypes {
         return expr.visit(new CalcTypeVisitor());
     }
 
-    public static SymbolTable.SemanticType calcType(ASTNodes.ExprNode expr) throws Exception{
-        return switch (expr){
+    public static SymbolTable.SemanticType calcType(ASTNodes.ExprNode expr) throws Exception {
+        return switch (expr) {
             case ASTNodes.IdNode id -> checkSymbolTable(id.name);
             case ASTNodes.IntNode node -> SymbolTable.SemanticType.IntType;
             case ASTNodes.DoubleNode node -> SymbolTable.SemanticType.DoubleType;
-            case ASTNodes.BinOpNode bin-> {
+            case ASTNodes.BigIntNode node -> SymbolTable.SemanticType.BigIntegerType;
+            case ASTNodes.BinOpNode bin -> {
                 var left = calcType(bin.left);
                 var right = calcType(bin.right);
-                if(Arrays.stream(LexerUnit.ArithmeticOperations).anyMatch(op -> op == bin.op)){
-                    if(!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
-                    !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
-                        yield  SymbolTable.SemanticType.BadType;
-                    else if(bin.op == LexerUnit.TokenType.DIVIDE)
-                        yield  SymbolTable.SemanticType.NoType;
-                    else if (left == right)
-                        yield left;
-                    yield SymbolTable.SemanticType.DoubleType;
+
+                if (left == null || right == null) {
+                    yield SymbolTable.SemanticType.BadType;
                 }
-                else if(Arrays.stream(LexerUnit.LogicalOperators).anyMatch(op -> op == bin.op)){
-                    if(left != SymbolTable.SemanticType.BoolType ||
-                    right != SymbolTable.SemanticType.BoolType)
-                        yield  SymbolTable.SemanticType.BadType;
-                    yield  SymbolTable.SemanticType.BoolType;
-                }
-                else if(Arrays.stream(LexerUnit.CompareOperations).anyMatch(op -> op == bin.op)){
-                    if(!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
-                    !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
+
+                if (Arrays.stream(LexerUnit.ArithmeticOperations).anyMatch(op -> op == bin.op)) {
+                    if (!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
+                            !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right)) {
                         yield SymbolTable.SemanticType.BadType;
-                    yield  SymbolTable.SemanticType.BoolType;
+                    } else if (bin.op == LexerUnit.TokenType.DIVIDE) {
+                        yield SymbolTable.SemanticType.DoubleType; // Деление всегда дает double
+                    } else if (left == right) {
+                        yield left;
+                    } else if ((left == SymbolTable.SemanticType.IntType && right == SymbolTable.SemanticType.DoubleType) ||
+                            (left == SymbolTable.SemanticType.DoubleType && right == SymbolTable.SemanticType.IntType)) {
+                        yield SymbolTable.SemanticType.DoubleType;
+                    } else if ((left == SymbolTable.SemanticType.IntType && right == SymbolTable.SemanticType.BigIntegerType) ||
+                            (left == SymbolTable.SemanticType.BigIntegerType && right == SymbolTable.SemanticType.IntType) ||
+                            (left == SymbolTable.SemanticType.DoubleType && right == SymbolTable.SemanticType.BigIntegerType) ||
+                            (left == SymbolTable.SemanticType.BigIntegerType && right == SymbolTable.SemanticType.DoubleType)) {
+                        yield SymbolTable.SemanticType.BigIntegerType;
+                    } else {
+                        yield SymbolTable.SemanticType.BadType;
+                    }
+                } else if (Arrays.stream(LexerUnit.LogicalOperators).anyMatch(op -> op == bin.op)) {
+                    if (left != SymbolTable.SemanticType.BoolType || right != SymbolTable.SemanticType.BoolType) {
+                        yield SymbolTable.SemanticType.BadType;
+                    }
+                    yield SymbolTable.SemanticType.BoolType;
+                } else if (Arrays.stream(LexerUnit.CompareOperations).anyMatch(op -> op == bin.op)) {
+                    if (!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
+                            !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right)) {
+                        yield SymbolTable.SemanticType.BadType;
+                    }
+                    yield SymbolTable.SemanticType.BoolType;
+                } else {
+                    yield SymbolTable.SemanticType.BadType;
                 }
-                yield null;
             }
-            default -> null;
+            default -> {
+                throw new Exception("Unsupported expression type: " + expr.getClass().getSimpleName());
+            }
         };
     }
 
