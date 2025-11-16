@@ -260,6 +260,32 @@ public class Main {
         }
     }
 
+    public static void tenthTest() throws Exception{
+        String text = "arr = [1,2,3,4]; arr[2] = 2; print(arr[2])";
+
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            progr.visitP(new SemanticCheck());
+            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
+            var pp = new PrettyPrinterSecond();
+            var start = System.nanoTime();
+            rooti.execute();
+            var end = System.nanoTime();
+            System.out.println(progr.visit(pp));
+            long duration = (end - start) / 1_000_000;
+            System.out.println("Время выполнения: " + duration + " мс");
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+    }
+
+
     private static BigInteger testLoop() {
         int i = 0;
         BigInteger sum = new BigInteger("0");
@@ -272,7 +298,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        ninethTest();
+        tenthTest();
     }
 }
 

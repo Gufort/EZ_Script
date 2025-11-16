@@ -1006,6 +1006,206 @@ public class InterpretTree {
         }
     }
 
+    ///  Реализация массивов
+    public static class ArrayAccessNodeI extends ExprNodeI{
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public int typeOfElements; // 0 - int, 1 - double, 2 - boolean, 3 - BigInteger
+
+        public ArrayAccessNodeI(ExprNodeI array, ExprNodeI index, int typeOfElements) {
+            this.array = array;
+            this.index = index;
+            this.typeOfElements = typeOfElements;
+        }
+
+        @Override
+        public int evalInt(){
+            return Memory.getArrayElementInt(array.evalInt(), index.evalInt());
+        }
+
+        @Override
+        public double evalReal() {
+            return Memory.getArrayElementDouble(array.evalInt(), index.evalInt());
+        }
+
+        @Override
+        public boolean evalBool() {
+            return Memory.getArrayElementBoolean(array.evalInt(), index.evalInt());
+        }
+
+        @Override
+        public BigInteger evalBigInteger() {
+            return Memory.getArrayElementBigInteger(array.evalInt(), index.evalInt());
+        }
+    }
+
+    public static class ArrayLiteralNodeI extends ExprNodeI{
+        public ArrayList<ExprNodeI> elements;
+        public int arrayType;
+
+        public ArrayLiteralNodeI(ArrayList<ExprNodeI> elements, int arrayType) {
+            this.elements = elements;
+            this.arrayType = arrayType;
+        }
+
+        @Override
+        public int evalInt(){
+            int size =  elements.size();
+            int address;
+            switch (arrayType) {
+                case 0: // int
+                    address = Memory.allocateIntArray(size);
+                    for(int i = 0; i < size; i++)
+                        Memory.setArrayElementInt(address, i, elements.get(i).evalInt());
+                    break;
+
+                case 1: // double
+                    address = Memory.allocateDoubleArray(size);
+                    for(int i = 0; i < size; i++)
+                        Memory.setArrayElementDouble(address, i, elements.get(i).evalReal());
+                    break;
+
+                case 2: // bool
+                    address = Memory.allocateBooleanArray(size);
+                    for(int i = 0; i < size; i++)
+                        Memory.setArrayElementBoolean(address, i, elements.get(i).evalBool());
+                    break;
+
+                case 3: //BigInteger
+                    address = Memory.allocateBigIntegerArray(size);
+                    for(int i = 0; i < size; i++)
+                        Memory.setArrayElementBigInteger(address, i, elements.get(i).evalBigInteger());
+                    break;
+
+                default:
+                    address = Memory.allocateObjectArray(size);
+                    break;
+            }
+            return address;
+        }
+    }
+
+    public static class ArrayDeclarationNodeI extends StatementNodeI{
+        public int address;
+        public ExprNodeI size;
+        public ArrayList<ExprNodeI> initialElements;
+        public int arrayType;
+
+        public ArrayDeclarationNodeI(int address, ExprNodeI size, ArrayList<ExprNodeI> initialElements, int arrayType) {
+            this.address = address;
+            this.size = size;
+            this.initialElements = initialElements;
+            this.arrayType = arrayType;
+        }
+
+        @Override
+        public void execute() {
+            if(size != null){
+                int arraySize = size.evalInt();
+                int arrayAddress;
+
+                switch (arrayType) {
+                    case 0: arrayAddress = Memory.allocateIntArray(arraySize); break;
+                    case 1: arrayAddress = Memory.allocateDoubleArray(arraySize); break;
+                    case 2: arrayAddress = Memory.allocateBooleanArray(arraySize); break;
+                    case 3: arrayAddress = Memory.allocateBigIntegerArray(arraySize); break;
+                    default: arrayAddress = Memory.allocateObjectArray(arraySize); break;
+                }
+
+                if(initialElements != null && !initialElements.isEmpty()){
+                    Object[] initialValues = new Object[initialElements.size()];
+                    for(int i = 0; i < initialElements.size(); i++){
+                        switch(arrayType){
+                            case 0: initialValues[i] = initialElements.get(i).evalInt(); break;
+                            case 1: initialValues[i] = initialElements.get(i).evalReal(); break;
+                            case 2: initialValues[i] = initialElements.get(i).evalBool(); break;
+                            case 3: initialValues[i] = initialElements.get(i).evalBigInteger(); break;
+                        }
+                        Memory.initializeArray(arrayAddress, initialValues);
+                    }
+                    Memory.setInt(address, arrayAddress);
+                }
+            }
+        }
+    }
+
+    // Узлы для присваивания элементам массива
+    public static class ArrayAssignIntNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setArrayElementInt(array.evalInt(), index.evalInt(), value.evalInt());
+        }
+    }
+
+    public static class ArrayAssignDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setArrayElementDouble(array.evalInt(), index.evalInt(), value.evalReal());
+        }
+    }
+
+    public static class ArrayAssignBooleanNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignBooleanNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setArrayElementBoolean(array.evalInt(), index.evalInt(), value.evalBool());
+        }
+    }
+
+    public static class ArrayAssignBigIntegerNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setArrayElementBigInteger(array.evalInt(), index.evalInt(), value.evalBigInteger());
+        }
+    }
+
+
+
+
+
+
+
+
+
     public static class IfNodeI extends StatementNodeI {
         public ExprNodeI condition;
         public StatementNodeI thenStat;

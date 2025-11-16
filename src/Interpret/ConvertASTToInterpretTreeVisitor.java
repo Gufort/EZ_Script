@@ -5,6 +5,7 @@ import SemanticCheckLogic.CalcTypes;
 import SemanticCheckLogic.SymbolTable;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 
 public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<InterpretTree.NodeI> {
 
@@ -109,20 +110,109 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
 
     @Override
     public InterpretTree.NodeI visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception{
-        return null;
+        InterpretTree.ExprNodeI array = (InterpretTree.ExprNodeI) node.array.visit(this);
+        InterpretTree.ExprNodeI index = (InterpretTree.ExprNodeI) node.index.visit(this);
+
+        int elementType = 0; // по умолчанию int
+        if (node.array instanceof ASTNodes.IdNode) {
+            SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(((ASTNodes.IdNode) node.array).name);
+            if (sym != null) {
+                switch (sym.semanticType) {
+                    case DoubleType: elementType = 1; break;
+                    case BoolType: elementType = 2; break;
+                    case BigIntegerType: elementType = 3; break;
+                }
+            }
+        }
+        return new InterpretTree.ArrayAccessNodeI(array, index, elementType);
     }
+
     @Override
     public InterpretTree.NodeI visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception{
-        return null;
+        ArrayList<InterpretTree.ExprNodeI> elements = new ArrayList<>();
+        int arrayType = 0;
+
+        if(!node.elements.isEmpty()) {
+            Object first =  node.elements.get(0).visit(this);
+            if (first instanceof InterpretTree.DoubleNodeI)
+                arrayType = 1;
+            else if(first instanceof InterpretTree.BigIntegerNodeI)
+                arrayType = 3;
+        }
+
+        for(var elem: node.elements) {
+            elements.add((InterpretTree.ExprNodeI) elem.visit(this));
+        }
+
+        return new  InterpretTree.ArrayLiteralNodeI(elements, arrayType);
     }
     @Override
     public InterpretTree.NodeI visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception{
-        return null;
+        SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(node.id.name);
+        if (sym == null) return null;
+
+        InterpretTree.ExprNodeI size = null;
+        if (node.size != null) {
+            size = (InterpretTree.ExprNodeI) node.size.visit(this);
+        }
+
+        ArrayList<InterpretTree.ExprNodeI> initialElements = null;
+        if (node.initialElements != null && !node.initialElements.isEmpty()) {
+            initialElements = new ArrayList<>();
+            for (ASTNodes.ExprNode element : node.initialElements) {
+                initialElements.add((InterpretTree.ExprNodeI) element.visit(this));
+            }
+        }
+
+        int arrayType = 0;
+        switch (sym.semanticType) {
+            case DoubleType: arrayType = 1; break;
+            case BoolType: arrayType = 2; break;
+            case BigIntegerType: arrayType = 3; break;
+        }
+
+        return new InterpretTree.ArrayDeclarationNodeI(sym.address, size, initialElements, arrayType);
     }
 
 
     @Override
     public InterpretTree.NodeI visitAssign(ASTNodes.AssignNode ass) throws Exception {
+        // Если это присваивание элементу массива
+        if (ass.id instanceof ASTNodes.ArrayAccessNode) {
+            ASTNodes.ArrayAccessNode arrayAccess = (ASTNodes.ArrayAccessNode) ass.id;
+            InterpretTree.ExprNodeI array = (InterpretTree.ExprNodeI) arrayAccess.array.visit(this);
+            InterpretTree.ExprNodeI index = (InterpretTree.ExprNodeI) arrayAccess.index.visit(this);
+            InterpretTree.ExprNodeI value = (InterpretTree.ExprNodeI) ass.expr.visit(this);
+
+            // Определяем тип элементов массива
+            int elementType = 0;
+            if (arrayAccess.array instanceof ASTNodes.IdNode) {
+                SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(((ASTNodes.IdNode) arrayAccess.array).name);
+                if (sym != null) {
+                    switch (sym.semanticType) {
+                        case DoubleType: elementType = 1; break;
+                        case BoolType: elementType = 2; break;
+                        case BigIntegerType: elementType = 3; break;
+                    }
+                }
+            }
+
+            // Используем существующие классы для присваивания элементам массива
+            switch (elementType) {
+                case 0:
+                    return new InterpretTree.ArrayAssignIntNodeI(array, index, value);
+                case 1:
+                    return new InterpretTree.ArrayAssignDoubleNodeI(array, index, value);
+                case 2:
+                    return new InterpretTree.ArrayAssignBooleanNodeI(array, index, value);
+                case 3:
+                    return new InterpretTree.ArrayAssignBigIntegerNodeI(array, index, value);
+                default:
+                    return new InterpretTree.ArrayAssignIntNodeI(array, index, value);
+            }
+        }
+
+        // Обычное присваивание переменной (существующий код)
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(ass.id.name);
         if (sym == null) return null;
 
