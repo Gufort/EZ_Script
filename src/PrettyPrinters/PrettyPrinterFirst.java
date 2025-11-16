@@ -109,6 +109,14 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
         return res.toString();
     }
     @Override
+    public String visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+        return ind() + node.array.visit(this) + "[" + node.index.visit(this) + "] = " + node.expr.visit(this);
+    }
+    @Override
+    public String visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        return ind() + node.array.visit(this) + "[" + node.index.visit(this) + "] " + node.op + "= " + node.expr.visit(this);
+    }
+    @Override
     public String visitAssign(ASTNodes.AssignNode node) throws Exception {
         return ind() + node.id.name + " = " + node.expr.visit(this);
     }

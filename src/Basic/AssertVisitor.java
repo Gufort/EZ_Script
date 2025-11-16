@@ -122,6 +122,20 @@ public class AssertVisitor implements ASTNodes.IVisitorP {
     }
 
     @Override
+    public void visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+        node.array.visitP(this);
+        node.index.visitP(this);
+        node.expr.visitP(this);
+    }
+
+    @Override
+    public void visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        node.array.visitP(this);
+        node.index.visitP(this);
+        node.expr.visitP(this);
+    }
+
+    @Override
     public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
         assert node != null : "BAD: ArrayDeclarationNode cannot be null";
         assert node.id != null : "BAD: ArrayDeclarationNode id cannot be null";

@@ -35,7 +35,7 @@ public class CalcTypes {
 
             if(Arrays.stream(LexerUnit.ArithmeticOperations).anyMatch(op -> op == node.op)){
                 if(!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
-                !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
+                        !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
                     CompilerException.semanticError("Операция " + node.operationToString() + " не определена для типов " + left + " и " + right, node.left.position);
                 else if(node.op == LexerUnit.TokenType.DIVIDE)
                     return SymbolTable.SemanticType.DoubleType;
@@ -52,7 +52,7 @@ public class CalcTypes {
 
             else if(Arrays.stream(LexerUnit.CompareOperations).anyMatch(op -> op == node.op)){
                 if(!Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == left) ||
-                !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
+                        !Arrays.stream(SymbolTable.NumTypes).anyMatch(l -> l == right))
                     CompilerException.semanticError("Операция " + node.operationToString() + " не определена для типов " + left + " и " + right, node.left.position);
                 return SymbolTable.SemanticType.BoolType;
             }
@@ -127,6 +127,93 @@ public class CalcTypes {
         @Override public SymbolTable.SemanticType visitAssignOperation(ASTNodes.AssignOperationNode node) {
             return SymbolTable.SemanticType.NoType;
         }
+
+        // ДОБАВЛЕННЫЕ МЕТОДЫ ДЛЯ НОВЫХ УЗЛОВ:
+        @Override
+        public SymbolTable.SemanticType visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+            // Проверяем типы для присваивания элементу массива
+            var arrayType = node.array.visit(this);
+            var indexType = node.index.visit(this);
+            var exprType = node.expr.visit(this);
+
+            // Проверяем, что индекс целочисленный
+            if (indexType != SymbolTable.SemanticType.IntType) {
+                CompilerException.semanticError("Индекс массива должен быть целочисленным", node.index.position);
+                return SymbolTable.SemanticType.BadType;
+            }
+
+            // Проверяем, что левая часть - это массив
+            if (node.array instanceof ASTNodes.IdNode) {
+                String arrayName = ((ASTNodes.IdNode) node.array).name;
+                SymbolTable.SymbolInfo arrayInfo = SymbolTable.SymTable.get(arrayName);
+                if (arrayInfo == null || arrayInfo.kindType != SymbolTable.KindType.ArrayName) {
+                    CompilerException.semanticError("Ожидался массив", node.array.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+
+                // Проверяем совместимость типов
+                if (!assignComparable(arrayInfo.elementType, exprType)) {
+                    CompilerException.semanticError("Несовместимые типы при присваивании элементу массива: " +
+                            arrayInfo.elementType + " и " + exprType, node.expr.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+            }
+
+            return SymbolTable.SemanticType.NoType;
+        }
+
+        @Override
+        public SymbolTable.SemanticType visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+            var arrayType = node.array.visit(this);
+            var indexType = node.index.visit(this);
+            var exprType = node.expr.visit(this);
+
+            if (indexType != SymbolTable.SemanticType.IntType) {
+                CompilerException.semanticError("Индекс массива должен быть целочисленным", node.index.position);
+                return SymbolTable.SemanticType.BadType;
+            }
+
+            if (node.array instanceof ASTNodes.IdNode) {
+                String arrayName = ((ASTNodes.IdNode) node.array).name;
+                SymbolTable.SymbolInfo arrayInfo = SymbolTable.SymTable.get(arrayName);
+                if (arrayInfo == null || arrayInfo.kindType != SymbolTable.KindType.ArrayName) {
+                    CompilerException.semanticError("Ожидался массив", node.array.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+
+                if (arrayInfo.elementType != SymbolTable.SemanticType.IntType &&
+                        arrayInfo.elementType != SymbolTable.SemanticType.DoubleType &&
+                        arrayInfo.elementType != SymbolTable.SemanticType.BigIntegerType) {
+                    CompilerException.semanticError("Операция " + node.op + " не определена для типа " +
+                            arrayInfo.elementType, node.expr.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+
+                if (!assignComparable(arrayInfo.elementType, exprType)) {
+                    CompilerException.semanticError("Несовместимые типы при присваивании элементу массива: " +
+                            arrayInfo.elementType + " и " + exprType, node.expr.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+
+                switch (node.op) {
+                    case '+': break;
+                    case '-': break;
+                    case '*': break;
+                    case '/':
+                        if (arrayInfo.elementType == SymbolTable.SemanticType.IntType) {
+                            CompilerException.semanticError("Операция /= не определена для целочисленных типов", node.expr.position);
+                            return SymbolTable.SemanticType.BadType;
+                        }
+                        break;
+                    default:
+                        CompilerException.semanticError("Неизвестная операция " + node.op, node.expr.position);
+                        return SymbolTable.SemanticType.BadType;
+                }
+            }
+
+            return SymbolTable.SemanticType.NoType;
+        }
+
         @Override public SymbolTable.SemanticType visitIf(ASTNodes.IfNode node) {
             return SymbolTable.SemanticType.NoType;
         }
@@ -151,7 +238,7 @@ public class CalcTypes {
             for(int i = 0; i < sym.params.length; i++){
                 var tp = calcTypeVis(node.pars.lst.get(i));
                 if(!assignComparable(sym.params[i], tp))
-                    CompilerException.semanticError("Тип аргумента функции " + node.name.name + 
+                    CompilerException.semanticError("Тип аргумента функции " + node.name.name +
                             " не соответствует типу формального параметра ", node.name.position);
             }
             return SymbolTable.SemanticType.NoType;
@@ -187,6 +274,44 @@ public class CalcTypes {
             case ASTNodes.IntNode node -> SymbolTable.SemanticType.IntType;
             case ASTNodes.DoubleNode node -> SymbolTable.SemanticType.DoubleType;
             case ASTNodes.BigIntNode node -> SymbolTable.SemanticType.BigIntegerType;
+            case ASTNodes.ArrayAccessNode arrayAccess -> {
+                // Обработка доступа к массиву
+                if (arrayAccess.array instanceof ASTNodes.IdNode) {
+                    String arrayName = ((ASTNodes.IdNode) arrayAccess.array).name;
+                    SymbolTable.SymbolInfo arrayInfo = SymbolTable.SymTable.get(arrayName);
+                    if (arrayInfo != null && arrayInfo.kindType == SymbolTable.KindType.ArrayName) {
+                        yield arrayInfo.elementType != null ? arrayInfo.elementType : SymbolTable.SemanticType.ObjectType;
+                    }
+                }
+                yield SymbolTable.SemanticType.BadType;
+            }
+            case ASTNodes.ArrayLiteralNode arrayLiteral -> {
+                if (arrayLiteral.elements.isEmpty()) {
+                    yield SymbolTable.SemanticType.ObjectType;
+                }
+
+                SymbolTable.SemanticType commonType = calcType(arrayLiteral.elements.get(0));
+                for (int i = 1; i < arrayLiteral.elements.size(); i++) {
+                    SymbolTable.SemanticType currentType = calcType(arrayLiteral.elements.get(i));
+                    if (commonType == SymbolTable.SemanticType.IntType && currentType == SymbolTable.SemanticType.DoubleType) {
+                        commonType = SymbolTable.SemanticType.DoubleType;
+                    } else if (commonType == SymbolTable.SemanticType.IntType && currentType == SymbolTable.SemanticType.BigIntegerType) {
+                        commonType = SymbolTable.SemanticType.BigIntegerType;
+                    } else if (commonType == SymbolTable.SemanticType.DoubleType && currentType == SymbolTable.SemanticType.BigIntegerType) {
+                        commonType = SymbolTable.SemanticType.DoubleType;
+                    } else if (!assignComparable(commonType, currentType)) {
+                        yield SymbolTable.SemanticType.BadType;
+                    }
+                }
+                yield commonType;
+            }
+            case ASTNodes.FuncCallNode funcCall -> {
+                SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(funcCall.name.name);
+                if (sym != null && sym.kindType == SymbolTable.KindType.FuncName) {
+                    yield sym.semanticType;
+                }
+                yield SymbolTable.SemanticType.BadType;
+            }
             case ASTNodes.BinOpNode bin -> {
                 var left = calcType(bin.left);
                 var right = calcType(bin.right);

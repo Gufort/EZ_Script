@@ -8,6 +8,52 @@ import java.math.BigInteger;
 public class SemanticCheck extends AutoVisitorUnit {
 
     @Override
+    public void visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+        node.array.visitP(this);
+        node.index.visitP(this);
+        node.expr.visitP(this);
+
+        SymbolTable.SemanticType indexType = CalcTypes.calcTypeVis(node.index);
+        if (indexType != SymbolTable.SemanticType.IntType) {
+            CompilerException.semanticError("Индекс массива должен быть целочисленным", node.index.position);
+        }
+
+        if (node.array instanceof ASTNodes.IdNode) {
+            String arrayName = ((ASTNodes.IdNode) node.array).name;
+            SymbolTable.SymbolInfo arrayInfo = SymbolTable.SymTable.get(arrayName);
+            if (arrayInfo != null && arrayInfo.kindType == SymbolTable.KindType.ArrayName) {
+                SymbolTable.SemanticType exprType = CalcTypes.calcTypeVis(node.expr);
+                if (!CalcTypes.assignComparable(arrayInfo.elementType, exprType)) {
+                    CompilerException.semanticError("Несовместимые типы при присваивании элементу массива", node.expr.position);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        node.array.visitP(this);
+        node.index.visitP(this);
+        node.expr.visitP(this);
+
+        SymbolTable.SemanticType indexType = CalcTypes.calcTypeVis(node.index);
+        if (indexType != SymbolTable.SemanticType.IntType) {
+            CompilerException.semanticError("Индекс массива должен быть целочисленным", node.index.position);
+        }
+
+        if (node.array instanceof ASTNodes.IdNode) {
+            String arrayName = ((ASTNodes.IdNode) node.array).name;
+            SymbolTable.SymbolInfo arrayInfo = SymbolTable.SymTable.get(arrayName);
+            if (arrayInfo != null && arrayInfo.kindType == SymbolTable.KindType.ArrayName) {
+                SymbolTable.SemanticType exprType = CalcTypes.calcTypeVis(node.expr);
+                if (!CalcTypes.assignComparable(arrayInfo.elementType, exprType)) {
+                    CompilerException.semanticError("Несовместимые типы при присваивании элементу массива", node.expr.position);
+                }
+            }
+        }
+    }
+
+    @Override
     public void visitAssign(ASTNodes.AssignNode node) throws Exception {
         node.expr.visitP(this);
 

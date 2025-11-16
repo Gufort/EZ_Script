@@ -19,6 +19,8 @@ public abstract class ASTNodes {
         T visitId(IdNode id) throws Exception;
         T visitArrayAccess(ArrayAccessNode a) throws Exception;
         T visitArrayLiteral(ArrayLiteralNode a) throws Exception;
+        T visitArrayAssignOperation(ArrayAssignOperationNode a) throws Exception;
+        T visitArrayAssign(ArrayAssignNode a) throws Exception;
         T visitArrayDeclaration(ArrayDeclarationNode a) throws Exception;
         T visitAssign(AssignNode ass) throws Exception;
         T visitAssignOperation(AssignOperationNode ass) throws Exception;
@@ -42,6 +44,8 @@ public abstract class ASTNodes {
         void visitId(IdNode id) throws Exception;
         void visitArrayAccess(ArrayAccessNode a) throws Exception;
         void visitArrayLiteral(ArrayLiteralNode a) throws Exception;
+        void visitArrayAssign(ArrayAssignNode a) throws Exception;
+        void visitArrayAssignOperation(ArrayAssignOperationNode a) throws Exception;
         void visitArrayDeclaration(ArrayDeclarationNode a) throws Exception;
         void visitAssign(AssignNode ass) throws Exception;
         void visitAssignOperation(AssignOperationNode ass) throws Exception;
@@ -288,6 +292,58 @@ public abstract class ASTNodes {
             }
             sb.append("]");
             return sb.toString();
+        }
+    }
+
+    // Присваивание элементу массива
+    public static class ArrayAssignNode extends StatementNode {
+        public ExprNode array;
+        public ExprNode index;
+        public ExprNode expr;
+
+        public ArrayAssignNode(ExprNode array, ExprNode index, ExprNode expr, Position position) {
+            this.array = array;
+            this.index = index;
+            this.expr = expr;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception  { return v.visitArrayAssign(this); }
+
+        @Override
+        public void visitP(IVisitorP v) throws Exception  { v.visitArrayAssign(this); }
+
+        @Override
+        public String toString() {
+            return array + "[" + index + "] = " + expr;
+        }
+    }
+
+    // Составное присваивание элементу массива
+    public static class ArrayAssignOperationNode extends StatementNode {
+        public ExprNode array;
+        public ExprNode index;
+        public ExprNode expr;
+        public char op;
+
+        public ArrayAssignOperationNode(ExprNode array, ExprNode index, ExprNode expr, char op, Position position) {
+            this.array = array;
+            this.index = index;
+            this.expr = expr;
+            this.op = op;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitArrayAssignOperation(this); }
+
+        @Override
+        public void visitP(IVisitorP v) throws Exception { v.visitArrayAssignOperation(this); }
+
+        @Override
+        public String toString() {
+            return array + "[" + index + "] " + op + "= " + expr;
         }
     }
 

@@ -261,7 +261,7 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception{
-        String text = "arr = [1,2,3,4]; arr[2] = 2; print(arr[2])";
+        String text = "arr = [1,2,3,4]; arr[2] = arr[2] + 3; print(arr[2])";
 
         var lex = new LexerUnit.Lexer(text);
         try{

@@ -74,6 +74,14 @@ public class PrettyPrinterSecond implements ASTNodes.IVisitor<String>{
         return node.array.visit(this) + "[" + node.index.visit(this) + "]";
     }
     @Override
+    public String visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+        return ind() + node.array.visit(this) + "[" + node.index.visit(this) + "] = " + node.expr.visit(this);
+    }
+    @Override
+    public String visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        return ind() + node.array.visit(this) + "[" + node.index.visit(this) + "] " + node.op + "= " + node.expr.visit(this);
+    }
+    @Override
     public String visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception {
         StringBuilder res = new StringBuilder();
         res.append("[");

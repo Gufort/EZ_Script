@@ -215,6 +215,19 @@ public class InterpretVisitor implements ASTNodes.IVisitor<Object>{
     }
 
     @Override
+    public Object visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception {
+        Object arrayObj = node.array.visit(this);
+        Object indexObj = node.index.visit(this);
+        Object valueObj = node.expr.visit(this);
+        return null;
+    }
+
+    @Override
+    public Object visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        return null;
+    }
+
+    @Override
     public Object visitAssign(ASTNodes.AssignNode node) throws Exception {
         Object value = node.expr.visit(this);
         SymbolTable.SymbolInfo symInfo = SymbolTable.SymTable.get(node.id.name);

@@ -82,7 +82,6 @@ public class Parser extends ParserBase {
             return stl;
         }
 
-        // Обработка доступа по индексу
         if(at(LexerUnit.TokenType.ID) && peekNextTokenType() == LexerUnit.TokenType.LEFT_BRACKET){
             var access = arrayAccess();
             if(at(LexerUnit.TokenType.ASSIGN,
@@ -90,15 +89,15 @@ public class Parser extends ParserBase {
                     LexerUnit.TokenType.ASSIGNMULTIPLE,
                     LexerUnit.TokenType.ASSIGNMINUS,
                     LexerUnit.TokenType.ASSIGNDIVIDE)){
+
                 var operator = nextLexem();
                 var expr = expr();
-                var temp = new ASTNodes.IdNode(access.toString(), pos);
 
-                if(operator.type == LexerUnit.TokenType.ASSIGN)
-                    return new ASTNodes.AssignNode(temp, expr, pos);
-                else {
+                if(operator.type == LexerUnit.TokenType.ASSIGN) {
+                    return new ASTNodes.ArrayAssignNode(access.array, access.index, expr, pos);
+                } else {
                     var op = getAssignOpChar(operator.type);
-                    return new ASTNodes.AssignOperationNode(temp, expr, op, pos);
+                    return new ASTNodes.ArrayAssignOperationNode(access.array, access.index, expr, op, pos);
                 }
             }
         }
