@@ -506,6 +506,18 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
         pushResult(address);
     }
 
+    public void visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception{
+
+    }
+
+    public void visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception{
+
+    }
+
+    public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception{
+
+    }
+
     public void visitIf(ASTNodes.IfNode node) throws  Exception{
         node.cond.visitP(this);
         int condResult = popResult();

@@ -67,6 +67,40 @@ public class LoggerVisitor implements ASTNodes.IVisitorP {
         logger.info(getIndent() + "Visiting IdNode " + node.name + " at " + node.position.toString());
     }
 
+    @Override
+    public void visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception {
+        logger.info(getIndent() + "Visiting ArrayAccessNode at " + node.position.toString());
+        indent++;
+        node.array.visitP(this);
+        node.index.visitP(this);
+        indent--;
+    }
+
+    @Override
+    public void visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception {
+        logger.info(getIndent() + "Visiting ArrayLiteralNode with " + node.elements.size() + " elements at " + node.position.toString());
+        indent++;
+        for (var element : node.elements) {
+            element.visitP(this);
+        }
+        indent--;
+    }
+
+    @Override
+    public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
+        logger.info(getIndent() + "Visiting ArrayDeclarationNode " + node.id.name + " at " + node.position.toString());
+        indent++;
+        node.id.visitP(this);
+        if (node.size != null)
+            node.size.visitP(this);
+        if (node.initialElements != null) {
+            for (var value : node.initialElements) {
+                value.visitP(this);
+            }
+        }
+        indent--;
+    }
+
     @Override public void visitAssign(ASTNodes.AssignNode node) throws Exception {
         logger.info(getIndent() + "Visiting AssignNode");
         indent++;

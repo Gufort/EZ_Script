@@ -27,11 +27,8 @@ public class Main {
             var par = new Parser(lex);
             var progr = par.mainProgram();
             progr.visitP(new SemanticCheck());
-            var start = System.currentTimeMillis();
-            var end = System.currentTimeMillis();
             var pp = new PrettyPrinterFirst();
             System.out.println(progr.visit(pp));
-            //System.out.println(progr + "\n" + (end - start)/1000 + " c");
         }
         catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
@@ -46,7 +43,7 @@ public class Main {
 
     public static void secondTest() throws Exception{
         String text = "i = 0; sum = 0; n = 100000000;" +
-                "while (i<n) do {sum += 1/i; i += 1} ;" +
+                "while (i<n) do {sum += 1; i += 1} ;" +
                 "Print(sum);" +
                 "if (i == 1) then { Print(sum) }"
                 +"else { Print(52) };"
@@ -245,6 +242,24 @@ public class Main {
         }
     }
 
+    public static void ninethTest() throws Exception{
+        String text = "arr = [1,2,3,4]; arr[2] = 2";
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            progr.visitP(new SemanticCheck());
+            var pp = new PrettyPrinterFirst();
+            System.out.println(progr.visit(pp));
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Parser error:", e, lex.getLines());
+        }
+    }
+
     private static BigInteger testLoop() {
         int i = 0;
         BigInteger sum = new BigInteger("0");
@@ -257,20 +272,22 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
+        ninethTest();
+    }
+}
+
 //        fourthTest();
 //        System.out.println("_________________");
 //        thirdTest();
 //        System.out.println("_________________");
-        seventhTest();
-
-
-
-        long startTime = System.nanoTime();
-        var result = testLoop();
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime) / 1_000_000;
-
-        System.out.println("Результат: " + result);
-        System.out.println("Время выполнения: " + duration + " мс");
-    }
-}
+//        seventhTest();
+//
+//
+//
+//        long startTime = System.nanoTime();
+//        var result = testLoop();
+//        long endTime = System.nanoTime();
+//        long duration = (endTime - startTime) / 1_000_000;
+//
+//        System.out.println("Результат: " + result);
+//        System.out.println("Время выполнения: " + duration + " мс");

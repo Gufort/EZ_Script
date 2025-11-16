@@ -17,6 +17,9 @@ public abstract class ASTNodes {
         T visitBigInt(BigIntNode n) throws Exception;
         T visitDouble(DoubleNode d) throws Exception;
         T visitId(IdNode id) throws Exception;
+        T visitArrayAccess(ArrayAccessNode a) throws Exception;
+        T visitArrayLiteral(ArrayLiteralNode a) throws Exception;
+        T visitArrayDeclaration(ArrayDeclarationNode a) throws Exception;
         T visitAssign(AssignNode ass) throws Exception;
         T visitAssignOperation(AssignOperationNode ass) throws Exception;
         T visitIf(IfNode ifn) throws Exception;
@@ -37,6 +40,9 @@ public abstract class ASTNodes {
         void visitBigInt(BigIntNode n) throws Exception ;
         void visitDouble(DoubleNode d) throws Exception ;
         void visitId(IdNode id) throws Exception;
+        void visitArrayAccess(ArrayAccessNode a) throws Exception;
+        void visitArrayLiteral(ArrayLiteralNode a) throws Exception;
+        void visitArrayDeclaration(ArrayDeclarationNode a) throws Exception;
         void visitAssign(AssignNode ass) throws Exception;
         void visitAssignOperation(AssignOperationNode ass) throws Exception;
         void visitIf(IfNode ifn) throws Exception;
@@ -235,6 +241,82 @@ public abstract class ASTNodes {
         @Override
         public String toString() { return name; }
     }
+
+    // Доступ по индексу
+    public static class ArrayAccessNode extends ExprNode{
+        public ExprNode array;
+        public ExprNode index;
+
+        public ArrayAccessNode(ExprNode array, ExprNode index,  Position position) {
+            this.array = array;
+            this.index = index;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception{ return v.visitArrayAccess(this); }
+        @Override
+        public void visitP(IVisitorP v) throws Exception{ v.visitArrayAccess(this);}
+
+        @Override
+        public String toString() {
+            return array + "[" + index + "]";
+        }
+    }
+
+    // Представление массива
+    public static class ArrayLiteralNode extends ExprNode{
+        public ArrayList<ExprNode> elements = new ArrayList<ExprNode>();
+
+        public ArrayLiteralNode(ArrayList<ExprNode> elements, Position position) {
+            this.elements = elements;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitArrayLiteral(this); }
+        @Override
+        public void visitP(IVisitorP v) throws Exception { v.visitArrayLiteral(this); }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < elements.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(elements.get(i));
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+    }
+
+    // Объявление массива
+    public static class ArrayDeclarationNode extends ExprNode{
+        public IdNode id;
+        public ExprNode size;
+        public ArrayList<ExprNode> initialElements = new ArrayList<ExprNode>();
+
+        public ArrayDeclarationNode(IdNode id, ExprNode size,  ArrayList<ExprNode> initialElements, Position position) {
+            this.id = id;
+            this.size = size;
+            this.initialElements = initialElements;
+            this.position = position;
+        }
+
+        @Override
+        public <T> T visit(IVisitor<T> v) throws Exception { return v.visitArrayDeclaration(this); }
+        @Override
+        public void visitP(IVisitorP v) throws Exception { v.visitArrayDeclaration(this); }
+
+        @Override
+        public String toString() {
+            if (size != null) return "array " + id + "[" + size + "]";
+            else if (initialElements != null) return "array " + id + " = " + initialElements;
+            else return "array " + id;
+        }
+    }
+
 
     public static class AssignNode extends StatementNode{
         public IdNode id;

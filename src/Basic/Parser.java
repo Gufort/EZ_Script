@@ -3,6 +3,7 @@ package Basic;
 import ExceptionLogic.CompilerException;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 
 public class Parser extends ParserBase {
     public Parser(LexerUnit.Lexer lexer) throws Exception {
@@ -58,7 +59,6 @@ public class Parser extends ParserBase {
         else if(at(LexerUnit.TokenType.FOR)){
             nextLexem();
 
-            // Опциональные скобки
             boolean hasParen = at(LexerUnit.TokenType.LEFT_PAREN);
             if (hasParen) nextLexem();
 
@@ -82,7 +82,26 @@ public class Parser extends ParserBase {
             return stl;
         }
 
+        // Обработка доступа по индексу
+        if(at(LexerUnit.TokenType.ID) && peekNextTokenType() == LexerUnit.TokenType.LEFT_BRACKET){
+            var access = arrayAccess();
+            if(at(LexerUnit.TokenType.ASSIGN,
+                    LexerUnit.TokenType.ASSIGNPLUS,
+                    LexerUnit.TokenType.ASSIGNMULTIPLE,
+                    LexerUnit.TokenType.ASSIGNMINUS,
+                    LexerUnit.TokenType.ASSIGNDIVIDE)){
+                var operator = nextLexem();
+                var expr = expr();
+                var temp = new ASTNodes.IdNode(access.toString(), pos);
 
+                if(operator.type == LexerUnit.TokenType.ASSIGN)
+                    return new ASTNodes.AssignNode(temp, expr, pos);
+                else {
+                    var op = getAssignOpChar(operator.type);
+                    return new ASTNodes.AssignOperationNode(temp, expr, op, pos);
+                }
+            }
+        }
 
         var id = ident();
         if(at(LexerUnit.TokenType.ASSIGN)){
@@ -118,6 +137,73 @@ public class Parser extends ParserBase {
         }
         else expectedError(LexerUnit.TokenType.ASSIGN, LexerUnit.TokenType.LEFT_PAREN);
         return null;
+    }
+
+    private LexerUnit.TokenType peekNextTokenType() {
+        if (current + 1 < tokens.size()) {
+            return tokens.get(current + 1).type;
+        }
+        return LexerUnit.TokenType.EOF;
+    }
+
+    private char getAssignOpChar(LexerUnit.TokenType type) {
+        switch (type) {
+            case ASSIGNPLUS: return '+';
+            case ASSIGNMINUS: return '-';
+            case ASSIGNMULTIPLE: return '*';
+            case ASSIGNDIVIDE: return '/';
+            default: return '=';
+        }
+    }
+
+    private ASTNodes.ArrayAccessNode arrayAccess() throws Exception {
+        var pos = currentToken().position;
+        var id = ident();
+        requires(LexerUnit.TokenType.LEFT_BRACKET);
+        var index = expr();
+        requires(LexerUnit.TokenType.RIGHT_BRACKET);
+        return new ASTNodes.ArrayAccessNode(id, index, pos);
+    }
+
+    public ASTNodes.ArrayLiteralNode arrayLiteral() throws Exception {
+        var pos = currentToken().position;
+        requires(LexerUnit.TokenType.LEFT_BRACKET);
+        var elements = new ArrayList<ASTNodes.ExprNode>();
+
+        if(!at(LexerUnit.TokenType.RIGHT_BRACKET)){
+            elements.add(expr());
+            while(at(LexerUnit.TokenType.COMMA)){
+                nextLexem();
+                elements.add(expr());
+            }
+        }
+
+        requires(LexerUnit.TokenType.RIGHT_BRACKET);
+        return new ASTNodes.ArrayLiteralNode(elements, pos);
+    }
+
+
+    /// ArrayDeclaration := 'array' Id ('[' Expr ']')? ('=' ArrayLiteral)?
+    public ASTNodes.ArrayDeclarationNode arrayDeclaration() throws Exception {
+        var pos = currentToken().position;
+        var id = ident();
+        ASTNodes.ExprNode size = null;
+        var initialElements = new ArrayList<ASTNodes.ExprNode>();
+
+        // Обработка размера массива
+        if(at(LexerUnit.TokenType.LEFT_BRACKET)){
+            nextLexem();
+            size = expr();
+            requires(LexerUnit.TokenType.RIGHT_BRACKET);
+        }
+
+        // Обработка инициализации arr[3] = [1, 2, 3]
+        if(at(LexerUnit.TokenType.ASSIGN)){
+            nextLexem();
+            initialElements = arrayLiteral().elements;
+        }
+
+        return new  ASTNodes.ArrayDeclarationNode(id, size, initialElements, pos);
     }
 
     public ASTNodes.ExprNode expr() throws Exception {
@@ -171,15 +257,15 @@ public class Parser extends ParserBase {
     public ASTNodes.ExprNode factor() throws Exception {
         var position = currentToken().position;
 
-        if (at(LexerUnit.TokenType.INT)) {
+        if(at(LexerUnit.TokenType.LEFT_BRACKET))
+            return arrayLiteral();
+        else if (at(LexerUnit.TokenType.INT))
             return new ASTNodes.IntNode(Integer.parseInt(nextLexem().value.toString()), position);
-        }
-        else if (at(LexerUnit.TokenType.DOUBLELITERAL)) {
+        else if (at(LexerUnit.TokenType.DOUBLELITERAL))
             return new ASTNodes.DoubleNode(Double.parseDouble(nextLexem().value.toString()), position);
-        }
-        else if(at(LexerUnit.TokenType.BIGINTEGERLITERAL)){
+        else if(at(LexerUnit.TokenType.BIGINTEGERLITERAL))
             return new ASTNodes.BigIntNode(nextLexem().value.toString(), position);
-        }
+
         else if (at(LexerUnit.TokenType.LEFT_PAREN)) {
             nextLexem();
             var res = expr();
@@ -189,7 +275,15 @@ public class Parser extends ParserBase {
 
         else if (at(LexerUnit.TokenType.ID)) {
             var id = ident();
-            if (at(LexerUnit.TokenType.LEFT_PAREN)) {
+
+            // Доступ по индексу
+            if(at(LexerUnit.TokenType.LEFT_BRACKET)){
+                nextLexem();
+                var index = expr();
+                requires(LexerUnit.TokenType.RIGHT_BRACKET);
+                return new ASTNodes.ArrayAccessNode(id, index, position);
+            }
+            else if (at(LexerUnit.TokenType.LEFT_PAREN)) {
                 nextLexem();
                 var exprlst = exprList();
                 var res = new ASTNodes.FuncCallNode(id, exprlst, position);
@@ -204,7 +298,8 @@ public class Parser extends ParserBase {
         return null;
     }
 }
-/*Program := StatementList
+/*
+Program := StatementList
 StatementList := Statement (';' Statement)*
 Statement := Assign | ProcCall | IfStatement | WhileStatement
   | BlockStatement
@@ -222,4 +317,6 @@ AddOp := '+' | '-' | '||'
 Term := Factor (MultOp Factor)*
 MultOp := '*' | '/' | '&&'
 Factor := IntNum | DoubleNum | FuncCall | '(' Expr ')
-ExprList := Expr (',' Expr)* */
+ExprList := Expr (',' Expr)*
+ArrayDeclaration := 'array' Id ('[' Expr ']')? ('=' ArrayLiteral)?
+*/

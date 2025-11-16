@@ -99,6 +99,46 @@ public class AssertVisitor implements ASTNodes.IVisitorP {
     }
 
     @Override
+    public void visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception {
+        assert node != null : "BAD: ArrayAccessNode cannot be null";
+        assert node.array != null : "BAD: ArrayAccessNode array cannot be null";
+        assert node.index != null : "BAD: ArrayAccessNode index cannot be null";
+
+        node.array.visitP(this);
+        node.index.visitP(this);
+        System.out.println("GOOD: visitArrayAccess validation passed successfully");
+    }
+
+    @Override
+    public void visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception {
+        assert node != null : "BAD: ArrayLiteralNode cannot be null";
+        assert node.elements != null : "BAD: ArrayLiteralNode elements cannot be null";
+
+        for (var element : node.elements) {
+            assert element != null : "BAD: Array element cannot be null";
+            element.visitP(this);
+        }
+        System.out.println("GOOD: visitArrayLiteral validation passed successfully - " + node.elements.size() + " elements");
+    }
+
+    @Override
+    public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
+        assert node != null : "BAD: ArrayDeclarationNode cannot be null";
+        assert node.id != null : "BAD: ArrayDeclarationNode id cannot be null";
+
+        node.id.visitP(this);
+        if (node.size != null)
+            node.size.visitP(this);
+        if (node.initialElements != null) {
+            for (var value : node.initialElements) {
+                assert value != null : "BAD: Array initial value cannot be null";
+                value.visitP(this);
+            }
+        }
+        System.out.println("GOOD: visitArrayDeclaration validation passed successfully");
+    }
+
+    @Override
     public void visitAssign(ASTNodes.AssignNode node) throws Exception {
         assert node != null : "BAD: AssignNode cannot be null";
         assert node.id != null : "BAD: AssignNode id cannot be null";

@@ -108,6 +108,20 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     }
 
     @Override
+    public InterpretTree.NodeI visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception{
+        return null;
+    }
+    @Override
+    public InterpretTree.NodeI visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception{
+        return null;
+    }
+    @Override
+    public InterpretTree.NodeI visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception{
+        return null;
+    }
+
+
+    @Override
     public InterpretTree.NodeI visitAssign(ASTNodes.AssignNode ass) throws Exception {
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(ass.id.name);
         if (sym == null) return null;

@@ -73,6 +73,41 @@ public class PrettyPrinterFirst implements ASTNodes.IVisitor<String> {
     public String visitId(ASTNodes.IdNode node) throws Exception {
         return node.name.toString();
     }
+    public String visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception {
+        return node.array.visit(this) + "[" + node.index.visit(this) + "]";
+    }
+    @Override
+    public String visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception {
+        StringBuilder res = new StringBuilder();
+        res.append("[");
+
+        for (int i = 0; i < node.elements.size(); i++) {
+            if (i > 0) res.append(", ");
+            res.append(node.elements.get(i).visit(this));
+        }
+
+        res.append("]");
+        return res.toString();
+    }
+    @Override
+    public String visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
+        StringBuilder res = new StringBuilder();
+        res.append(ind()).append("array ").append(node.id.name);
+
+        if (node.size != null)
+            res.append("[").append(node.size.visit(this)).append("]");
+
+        if (node.initialElements != null && !node.initialElements.isEmpty()) {
+            res.append(" = [");
+            for (int i = 0; i < node.initialElements.size(); i++) {
+                if (i > 0) res.append(", ");
+                res.append(node.initialElements.get(i).visit(this));
+            }
+            res.append("]");
+        }
+
+        return res.toString();
+    }
     @Override
     public String visitAssign(ASTNodes.AssignNode node) throws Exception {
         return ind() + node.id.name + " = " + node.expr.visit(this);

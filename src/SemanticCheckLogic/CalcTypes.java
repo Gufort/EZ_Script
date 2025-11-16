@@ -79,6 +79,48 @@ public class CalcTypes {
                 CompilerException.semanticError("Идентификатор " + node.name + " не определен", node.position);
             return SymbolTable.SymTable.get(node.name).semanticType;
         }
+        @Override public SymbolTable.SemanticType visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception {
+            var arrayType = node.array.visit(this);
+            var indexType = node.index.visit(this);
+
+            var arrayInfo = SymbolTable.SymTable.get(((ASTNodes.IdNode)node.array).name);
+            if(arrayInfo == null || arrayInfo.kindType != SymbolTable.KindType.ArrayName){
+                CompilerException.semanticError("Ожидался массив, получено " + arrayType, node.position);
+                return SymbolTable.SemanticType.BadType;
+            }
+
+            if(indexType != SymbolTable.SemanticType.IntType){
+                CompilerException.semanticError("Индекс в массиве должен быть целочисленным, получен " + indexType, node.position);
+                return SymbolTable.SemanticType.BadType;
+            }
+
+            return arrayInfo.elementType != null ?
+                    arrayInfo.elementType :
+                    SymbolTable.SemanticType.ObjectType;
+        }
+        @Override public SymbolTable.SemanticType visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception {
+            if(node.elements.isEmpty())
+                return SymbolTable.SemanticType.ObjectType;
+
+            var commonType = node.elements.get(0).visit(this);
+            for(int i = 1; i < node.elements.size(); ++i){
+                var currentType = node.elements.get(i).visit(this);
+                if(commonType == SymbolTable.SemanticType.IntType && currentType == SymbolTable.SemanticType.DoubleType)
+                    commonType = SymbolTable.SemanticType.DoubleType;
+                else if(commonType == SymbolTable.SemanticType.IntType && currentType == SymbolTable.SemanticType.BigIntegerType)
+                    commonType = SymbolTable.SemanticType.BigIntegerType;
+                else if(commonType == SymbolTable.SemanticType.DoubleType && currentType == SymbolTable.SemanticType.BigIntegerType)
+                    commonType = SymbolTable.SemanticType.DoubleType;
+                else if(!assignComparable(commonType, currentType)){
+                    CompilerException.semanticError("Несовместимые типы в массиве " + commonType + " и " + currentType, node.position);
+                    return SymbolTable.SemanticType.BadType;
+                }
+            }
+            return commonType;
+        }
+        @Override public SymbolTable.SemanticType visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
+            return SymbolTable.SemanticType.NoType;
+        }
         @Override public SymbolTable.SemanticType visitAssign(ASTNodes.AssignNode node) {
             return SymbolTable.SemanticType.NoType;
         }
