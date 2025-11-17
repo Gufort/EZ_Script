@@ -78,6 +78,14 @@ public class SimpleVirtualMachine {
         initialize();
     }
 
+    private static void copyValue(ValueType source, ValueType dest) {
+        dest.integer = source.integer;
+        dest.real = source.real;
+        dest.bool = source.bool;
+        dest.bigInteger = source.bigInteger;
+        dest.type = source.type;
+    }
+
     private static void ensureMemoryAccess(int index) {
         if (index < 0) {
             throw new RuntimeException("Invalid memory index: " + index);
@@ -246,6 +254,37 @@ public class SimpleVirtualMachine {
                         throw new Exception("Divide by zero!!!");
                     memory[tar.indexInMemory].real = memory[tar.indexOfFirstOperand].real / memory[tar.indexOfSecondOperand].real;
                 }
+                break;
+
+            // Array realization
+            case ThreeAddressCode.Commands.ARRALLOC:
+                // Выделяем память под массив и заполняем массив значениями по умолчанию
+                if(tar.indexInMemory >= 0){
+                    var size = memory[tar.indexOfFirstOperand].integer;
+                    ensureMemoryAccess(tar.indexInMemory + size);
+                    for(int i = 0; i < size; i++)
+                        memory[tar.indexInMemory + i] = new ValueType();
+                }
+                break;
+            case ThreeAddressCode.Commands.ARRSTORE:
+                if(tar.indexInMemory >= 0 && tar.indexOfFirstOperand >= 0 &&  tar.indexOfSecondOperand >= 0){
+                    var index =  memory[tar.indexOfFirstOperand].integer;
+                    var value = memory[tar.indexOfSecondOperand];
+                    ensureMemoryAccess(index + tar.indexInMemory);
+                    memory[tar.indexOfFirstOperand + index] = value;
+                }
+                break;
+            case ThreeAddressCode.Commands.ARRLOAD:
+                if(tar.indexInMemory >= 0 && tar.indexOfFirstOperand >= 0 && tar.indexOfSecondOperand >= 0){
+                    var index =  memory[tar.indexOfFirstOperand].integer;
+                    ensureMemoryAccess(index + tar.indexInMemory);
+                    memory[tar.indexInMemory] = new ValueType();
+                    copyValue(memory[tar.indexInMemory + index], memory[tar.indexInMemory]);
+                }
+                break;
+            case ThreeAddressCode.Commands.ARRLEN:
+                if(tar.indexInMemory >= 0 && tar.indexOfFirstOperand >= 0)
+                    memory[tar.indexInMemory].integer = memory[tar.indexOfFirstOperand].integer;
                 break;
 
             // BigInteger comparison operations

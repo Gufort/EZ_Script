@@ -88,6 +88,12 @@ public class ThreeAddressCode {
         BNEQ, // bool != bool
         BINEQ, // BigInteger != BigInteger
 
+        // Array realization
+        ARRALLOC, // выделение памяти по массив
+        ARRSTORE, // запись элемента в массив
+        ARRLOAD,  // чтение элемента из массива
+        ARRLEN,   // длина массива
+
         // Conversions
         CONITR, // convert int to double
         CONITBI, // convert int to BigInteger

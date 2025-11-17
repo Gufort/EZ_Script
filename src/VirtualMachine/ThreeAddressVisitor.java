@@ -507,19 +507,70 @@ public class ThreeAddressVisitor implements ASTNodes.IVisitorP{
     }
 
     public void visitArrayAccess(ASTNodes.ArrayAccessNode node) throws Exception{
+        node.array.visitP(this);
+        var arrayBase = popResult();
 
+        node.index.visitP(this);
+        var index = popResult();
+
+        var result = newTemp();
+        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRLOAD, arrayBase, index, result));
+        pushResult(result);
     }
 
     public void visitArrayLiteral(ASTNodes.ArrayLiteralNode node) throws Exception{
+        int arrayBase = newTemp();
+        int size = newTemp();
 
+        // Размер массива
+        code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, size, node.elements.size()));
+        // Выделяем память под массив
+        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRALLOC, arrayBase, size, arrayBase));
+
+        for(int i = 0; i < node.elements.size(); i++){
+            int index = newTemp();
+            code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, index, i));
+
+            // Поработали с индексом, теперь переходим к значению
+            node.elements.get(i).visitP(this);
+            int value = popResult();
+            code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRSTORE, arrayBase, index, value));
+        }
+        pushResult(arrayBase);
     }
 
     public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception{
+        var arrayBase = getVariableAddress(node.id.name);
+        if(node.size != null){
+            node.size.visitP(this);
+            var size = popResult();
+            code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRALLOC, arrayBase, size, arrayBase));
 
+            if(node.initialElements != null){
+                for(int i = 0; i < node.initialElements.size(); i++){
+                    var index = newTemp();
+                    code.add(ThreeAddressCode.createConst(ThreeAddressCode.Commands.ICAAS, index, i));
+
+                    node.initialElements.get(i).visitP(this);
+                    int value = popResult();
+                    code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRSTORE, arrayBase, index, value));
+                }
+            }
+        }
+        pushResult(arrayBase);
     }
 
     public void visitArrayAssign(ASTNodes.ArrayAssignNode node) throws Exception{
+        node.array.visitP(this);
+        var arrayBase = popResult();
 
+        node.index.visitP(this);
+        var index = popResult();
+
+        node.expr.visitP(this);
+        var expr = popResult();
+
+        code.add(ThreeAddressCode.createBinary(ThreeAddressCode.Commands.ARRSTORE, arrayBase, index, expr));
     }
 
     public void visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception{

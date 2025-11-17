@@ -285,6 +285,28 @@ public class Main {
         }
     }
 
+    public static void eleventhTest() throws Exception{
+        String text = "arr = [1,2,3,4]; print(arr[2])";
+
+        var lex = new LexerUnit.Lexer(text);
+        try{
+            var par = new Parser(lex);
+            var progr = par.mainProgram();
+            var generator = new ThreeAddressVisitor();
+            progr.visitP(new SemanticCheck());
+            progr.visitP(generator);
+            generator.Stop();
+            SimpleVirtualMachine.startProgram(generator.getCode());
+            System.out.println(progr.visit(new PrettyPrinterSecond()));
+        }
+        catch (CompilerException.LexerException e) {
+            CompilerException.outputError("Lexer error:", e, lex.getLines());
+        }
+        catch (CompilerException.SyntaxException e) {
+            CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+    }
+
 
     private static BigInteger testLoop() {
         int i = 0;
@@ -298,7 +320,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        tenthTest();
+        eleventhTest();
     }
 }
 
