@@ -191,8 +191,8 @@ public class Main {
 
     public static void seventhTest() throws Exception{
         String text = "i = 1; sum = 0; n = 100000000; bigInt = 1234bi; " +
-            "while(i < n) do { bigInt += 1; i += 1 }; " +
-            "print(bigInt); bigInt *= 2bi; print(n)";
+            "while(i < n) do { bigInt = bigInt + 1bi; i += 1 }; " +
+            "print(bigInt); bigInt *= 2bi; print(bigInt)";
 
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -320,7 +320,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        eleventhTest();
+        seventhTest();
     }
 }
 

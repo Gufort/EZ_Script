@@ -13,6 +13,7 @@ public class InterpretTree {
         public double evalReal() { return 0.0; }
         public boolean evalBool() { return false; }
         public BigInteger evalBigInteger() { return new BigInteger("0"); }
+        public int evalAddress() { return 0; }
     }
 
     public static abstract class StatementNodeI extends NodeI {
@@ -48,29 +49,50 @@ public class InterpretTree {
         @Override public BigInteger evalBigInteger() { return val; }
     }
 
+    public static class BooleanNodeI extends ExprNodeI {
+        public boolean val;
+        public BooleanNodeI(boolean value) { this.val = value; }
+        @Override public boolean evalBool() { return val; }
+    }
+
     public static class IdNodeI extends ExprNodeI {
         public int address;
-        public IdNodeI(int address) { this.address = address; }
-        @Override public int evalInt() { return Memory.getInt(address); }
+        public Memory.DataType type;
+
+        public IdNodeI(int address, Memory.DataType type) {
+            this.address = address;
+            this.type = type;
+        }
+
+        @Override public int evalInt() {
+            if (type != Memory.DataType.INT) {
+                throw new RuntimeException("Type mismatch: expected INT, got " + type);
+            }
+            return Memory.getInt(address);
+        }
+
+        @Override public double evalReal() {
+            if (type != Memory.DataType.DOUBLE) {
+                throw new RuntimeException("Type mismatch: expected DOUBLE, got " + type);
+            }
+            return Memory.getDouble(address);
+        }
+
+        @Override public boolean evalBool() {
+            if (type != Memory.DataType.BOOLEAN) {
+                throw new RuntimeException("Type mismatch: expected BOOLEAN, got " + type);
+            }
+            return Memory.getBoolean(address);
+        }
+
+        @Override public BigInteger evalBigInteger() {
+            if (type != Memory.DataType.BIG_INTEGER) {
+                throw new RuntimeException("Type mismatch: expected BIG_INTEGER, got " + type);
+            }
+            return Memory.getBigInteger(address);
+        }
     }
 
-    public static class IdNodeR extends ExprNodeI {
-        public int address;
-        public IdNodeR(int address) { this.address = address; }
-        @Override public double evalReal() { return Memory.getDouble(address); }
-    }
-
-    public static class IdNodeB extends ExprNodeI {
-        public int address;
-        public IdNodeB(int address) { this.address = address; }
-        @Override public boolean evalBool() { return Memory.getBoolean(address); }
-    }
-
-    public static class IdNodeBI extends ExprNodeI {
-        public int address;
-        public IdNodeBI(int address) { this.address = address; }
-        @Override public BigInteger evalBigInteger() { return Memory.getBigInteger(address); }
-    }
 
     public static class PlusII extends BinOpNodeI {
         public PlusII(ExprNodeI left, ExprNodeI right) { super(left, right); }
@@ -128,6 +150,7 @@ public class InterpretTree {
         }
     }
 
+
     public static class MinusII extends BinOpNodeI {
         public MinusII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public int evalInt() { return left.evalInt() - right.evalInt(); }
@@ -148,6 +171,24 @@ public class InterpretTree {
         @Override public double evalReal() { return left.evalReal() - right.evalReal(); }
     }
 
+    public static class MinusIC extends BinOpNodeI {
+        public int value;
+        public MinusIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public int evalInt() { return left.evalInt() - value; }
+    }
+
+    public static class MinusRC extends BinOpNodeI {
+        public double value;
+        public MinusRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public double evalReal() { return left.evalReal() - value; }
+    }
+
     public static class MinusBIBI extends BinOpNodeI {
         public MinusBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public BigInteger evalBigInteger() {
@@ -165,6 +206,7 @@ public class InterpretTree {
             return left.evalBigInteger().subtract(value);
         }
     }
+
 
     public static class MultII extends BinOpNodeI {
         public MultII(ExprNodeI left, ExprNodeI right) { super(left, right); }
@@ -184,6 +226,24 @@ public class InterpretTree {
     public static class MultRR extends BinOpNodeI {
         public MultRR(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public double evalReal() { return left.evalReal() * right.evalReal(); }
+    }
+
+    public static class MultIC extends BinOpNodeI {
+        public int value;
+        public MultIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public int evalInt() { return left.evalInt() * value; }
+    }
+
+    public static class MultRC extends BinOpNodeI {
+        public double value;
+        public MultRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public double evalReal() { return left.evalReal() * value; }
     }
 
     public static class MultBIBI extends BinOpNodeI {
@@ -224,6 +284,24 @@ public class InterpretTree {
         @Override public double evalReal() { return left.evalReal() / right.evalReal(); }
     }
 
+    public static class DivIC extends BinOpNodeI {
+        public int value;
+        public DivIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public double evalReal() { return left.evalInt() / (double) value; }
+    }
+
+    public static class DivRC extends BinOpNodeI {
+        public double value;
+        public DivRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public double evalReal() { return left.evalReal() / value; }
+    }
+
     public static class DivBIBI extends BinOpNodeI {
         public DivBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public BigInteger evalBigInteger() {
@@ -242,6 +320,7 @@ public class InterpretTree {
         }
     }
 
+
     public static class ModBIBI extends BinOpNodeI {
         public ModBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public BigInteger evalBigInteger() {
@@ -249,9 +328,401 @@ public class InterpretTree {
         }
     }
 
+    public static class ModBIC extends BinOpNodeI {
+        public BigInteger value;
+        public ModBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public BigInteger evalBigInteger() {
+            return left.evalBigInteger().mod(value);
+        }
+    }
+
+    // Вставьте этот код в класс InterpretTree после других Assign-классов
+
+    // ==================== СОСТАВНЫЕ ПРИСВАИВАНИЯ ДЛЯ BIGINTEGER ====================
+    public static class AssignMinusBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMinusBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            BigInteger sub = expr.evalBigInteger();
+            Memory.setBigInteger(address, current.subtract(sub));
+        }
+    }
+
+    public static class AssignMultBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMultBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            BigInteger mul = expr.evalBigInteger();
+            Memory.setBigInteger(address, current.multiply(mul));
+        }
+    }
+
+    public static class AssignDivBigIntegerNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignDivBigIntegerNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            BigInteger div = expr.evalBigInteger();
+            Memory.setBigInteger(address, current.divide(div));
+        }
+    }
+
+
+    public static class AssignMinusBigIntegerCNodeI extends StatementNodeI {
+        public int address;
+        public BigInteger val;
+
+        public AssignMinusBigIntegerCNodeI(int address, BigInteger val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.subtract(val));
+        }
+    }
+
+    public static class AssignMultBigIntegerCNodeI extends StatementNodeI {
+        public int address;
+        public BigInteger val;
+
+        public AssignMultBigIntegerCNodeI(int address, BigInteger val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.multiply(val));
+        }
+    }
+
+    public static class AssignDivBigIntegerCNodeI extends StatementNodeI {
+        public int address;
+        public BigInteger val;
+
+        public AssignDivBigIntegerCNodeI(int address, BigInteger val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            BigInteger current = Memory.getBigInteger(address);
+            Memory.setBigInteger(address, current.divide(val));
+        }
+    }
+
+    public static class AssignMinusDoubleNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMinusDoubleNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            double sub = expr.evalReal();
+            Memory.setDouble(address, current - sub);
+        }
+    }
+
+    public static class AssignMinusDoubleCNodeI extends StatementNodeI {
+        public int address;
+        public double val;
+
+        public AssignMinusDoubleCNodeI(int address, double val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            Memory.setDouble(address, current - val);
+        }
+    }
+
+    public static class AssignMultDoubleNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignMultDoubleNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            double mul = expr.evalReal();
+            Memory.setDouble(address, current * mul);
+        }
+    }
+
+    public static class AssignMultDoubleCNodeI extends StatementNodeI {
+        public int address;
+        public double val;
+
+        public AssignMultDoubleCNodeI(int address, double val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            Memory.setDouble(address, current * val);
+        }
+    }
+
+    public static class AssignBooleanCNodeI extends StatementNodeI {
+        public int address;
+        public boolean val;
+
+        public AssignBooleanCNodeI(int address, boolean val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setBoolean(address, val);
+        }
+    }
+
+
+    public static class AssignIntFromDoubleCNodeI extends StatementNodeI {
+        public int address;
+        public double val;
+
+        public AssignIntFromDoubleCNodeI(int address, double val) {
+            this.address = address;
+            this.val = val;
+        }
+
+        @Override
+        public void execute() {
+            Memory.setInt(address, (int) val);
+        }
+    }
+
+
+    public static class ArrayAssignMinusBigIntegerNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMinusBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            BigInteger current = Memory.getArrayElementBigInteger(arrAddr, idx);
+            BigInteger sub = value.evalBigInteger();
+            Memory.setArrayElementBigInteger(arrAddr, idx, current.subtract(sub));
+        }
+    }
+
+    public static class ArrayAssignMultBigIntegerNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMultBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            BigInteger current = Memory.getArrayElementBigInteger(arrAddr, idx);
+            BigInteger mul = value.evalBigInteger();
+            Memory.setArrayElementBigInteger(arrAddr, idx, current.multiply(mul));
+        }
+    }
+
+    public static class ArrayAssignDivBigIntegerNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignDivBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            BigInteger current = Memory.getArrayElementBigInteger(arrAddr, idx);
+            BigInteger div = value.evalBigInteger();
+            Memory.setArrayElementBigInteger(arrAddr, idx, current.divide(div));
+        }
+    }
+
+
+    public static class ArrayAssignMinusDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMinusDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            double current = Memory.getArrayElementDouble(arrAddr, idx);
+            double sub = value.evalReal();
+            Memory.setArrayElementDouble(arrAddr, idx, current - sub);
+        }
+    }
+
+    public static class ArrayAssignMultDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMultDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            double current = Memory.getArrayElementDouble(arrAddr, idx);
+            double mul = value.evalReal();
+            Memory.setArrayElementDouble(arrAddr, idx, current * mul);
+        }
+    }
+
+    public static class ArrayAssignDivDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignDivDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            double current = Memory.getArrayElementDouble(arrAddr, idx);
+            double div = value.evalReal();
+            Memory.setArrayElementDouble(arrAddr, idx, current / div);
+        }
+    }
+
+
+    public static class ArrayAssignMinusIntNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMinusIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            int current = Memory.getArrayElementInt(arrAddr, idx);
+            int sub = value.evalInt();
+            Memory.setArrayElementInt(arrAddr, idx, current - sub);
+        }
+    }
+
+    public static class ArrayAssignMultIntNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignMultIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            int current = Memory.getArrayElementInt(arrAddr, idx);
+            int mul = value.evalInt();
+            Memory.setArrayElementInt(arrAddr, idx, current * mul);
+        }
+    }
+
+
     public static class LessII extends BinOpNodeI {
         public LessII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() < right.evalInt(); }
+    }
+
+    public static class LessIC extends BinOpNodeI {
+        public int value;
+        public LessIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() < value; }
     }
 
     public static class LessIR extends BinOpNodeI {
@@ -269,6 +740,15 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() < right.evalReal(); }
     }
 
+    public static class LessRC extends BinOpNodeI {
+        public double value;
+        public LessRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() < value; }
+    }
+
     public static class LessBIBI extends BinOpNodeI {
         public LessBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() {
@@ -276,9 +756,29 @@ public class InterpretTree {
         }
     }
 
+    public static class LessBIC extends BinOpNodeI {
+        public BigInteger value;
+        public LessBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(value) < 0;
+        }
+    }
+
     public static class GreaterII extends BinOpNodeI {
         public GreaterII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() > right.evalInt(); }
+    }
+
+    public static class GreaterIC extends BinOpNodeI {
+        public int value;
+        public GreaterIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() > value; }
     }
 
     public static class GreaterIR extends BinOpNodeI {
@@ -296,6 +796,15 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() > right.evalReal(); }
     }
 
+    public static class GreaterRC extends BinOpNodeI {
+        public double value;
+        public GreaterRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() > value; }
+    }
+
     public static class GreaterBIBI extends BinOpNodeI {
         public GreaterBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() {
@@ -303,9 +812,29 @@ public class InterpretTree {
         }
     }
 
+    public static class GreaterBIC extends BinOpNodeI {
+        public BigInteger value;
+        public GreaterBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(value) > 0;
+        }
+    }
+
     public static class LessEqII extends BinOpNodeI {
         public LessEqII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() <= right.evalInt(); }
+    }
+
+    public static class LessEqIC extends BinOpNodeI {
+        public int value;
+        public LessEqIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() <= value; }
     }
 
     public static class LessEqIR extends BinOpNodeI {
@@ -323,6 +852,15 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() <= right.evalReal(); }
     }
 
+    public static class LessEqRC extends BinOpNodeI {
+        public double value;
+        public LessEqRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() <= value; }
+    }
+
     public static class LessEqBIBI extends BinOpNodeI {
         public LessEqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() {
@@ -330,9 +868,29 @@ public class InterpretTree {
         }
     }
 
+    public static class LessEqBIC extends BinOpNodeI {
+        public BigInteger value;
+        public LessEqBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(value) <= 0;
+        }
+    }
+
     public static class GreaterEqII extends BinOpNodeI {
         public GreaterEqII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() >= right.evalInt(); }
+    }
+
+    public static class GreaterEqIC extends BinOpNodeI {
+        public int value;
+        public GreaterEqIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() >= value; }
     }
 
     public static class GreaterEqIR extends BinOpNodeI {
@@ -350,6 +908,15 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() >= right.evalReal(); }
     }
 
+    public static class GreaterEqRC extends BinOpNodeI {
+        public double value;
+        public GreaterEqRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() >= value; }
+    }
+
     public static class GreaterEqBIBI extends BinOpNodeI {
         public GreaterEqBIBI(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() {
@@ -357,9 +924,29 @@ public class InterpretTree {
         }
     }
 
+    public static class GreaterEqBIC extends BinOpNodeI {
+        public BigInteger value;
+        public GreaterEqBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().compareTo(value) >= 0;
+        }
+    }
+
     public static class EqII extends BinOpNodeI {
         public EqII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() == right.evalInt(); }
+    }
+
+    public static class EqIC extends BinOpNodeI {
+        public int value;
+        public EqIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() == value; }
     }
 
     public static class EqIR extends BinOpNodeI {
@@ -377,9 +964,27 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() == right.evalReal(); }
     }
 
+    public static class EqRC extends BinOpNodeI {
+        public double value;
+        public EqRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() == value; }
+    }
+
     public static class EqBB extends BinOpNodeI {
         public EqBB(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalBool() == right.evalBool(); }
+    }
+
+    public static class EqBC extends BinOpNodeI {
+        public boolean value;
+        public EqBC(ExprNodeI left, boolean value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalBool() == value; }
     }
 
     public static class EqBIBI extends BinOpNodeI {
@@ -389,9 +994,29 @@ public class InterpretTree {
         }
     }
 
+    public static class EqBIC extends BinOpNodeI {
+        public BigInteger value;
+        public EqBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return left.evalBigInteger().equals(value);
+        }
+    }
+
     public static class NotEqII extends BinOpNodeI {
         public NotEqII(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalInt() != right.evalInt(); }
+    }
+
+    public static class NotEqIC extends BinOpNodeI {
+        public int value;
+        public NotEqIC(ExprNodeI left, int value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalInt() != value; }
     }
 
     public static class NotEqIR extends BinOpNodeI {
@@ -409,9 +1034,27 @@ public class InterpretTree {
         @Override public boolean evalBool() { return left.evalReal() != right.evalReal(); }
     }
 
+    public static class NotEqRC extends BinOpNodeI {
+        public double value;
+        public NotEqRC(ExprNodeI left, double value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalReal() != value; }
+    }
+
     public static class NotEqBB extends BinOpNodeI {
         public NotEqBB(ExprNodeI left, ExprNodeI right) { super(left, right); }
         @Override public boolean evalBool() { return left.evalBool() != right.evalBool(); }
+    }
+
+    public static class NotEqBC extends BinOpNodeI {
+        public boolean value;
+        public NotEqBC(ExprNodeI left, boolean value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() { return left.evalBool() != value; }
     }
 
     public static class NotEqBIBI extends BinOpNodeI {
@@ -419,6 +1062,30 @@ public class InterpretTree {
         @Override public boolean evalBool() {
             return !left.evalBigInteger().equals(right.evalBigInteger());
         }
+    }
+
+    public static class NotEqBIC extends BinOpNodeI {
+        public BigInteger value;
+        public NotEqBIC(ExprNodeI left, BigInteger value) {
+            super(left, null);
+            this.value = value;
+        }
+        @Override public boolean evalBool() {
+            return !left.evalBigInteger().equals(value);
+        }
+    }
+
+
+    public static class IntToDoubleNodeI extends ExprNodeI {
+        public ExprNodeI expr;
+        public IntToDoubleNodeI(ExprNodeI expr) { this.expr = expr; }
+        @Override public double evalReal() { return (double) expr.evalInt(); }
+    }
+
+    public static class DoubleToIntNodeI extends ExprNodeI {
+        public ExprNodeI expr;
+        public DoubleToIntNodeI(ExprNodeI expr) { this.expr = expr; }
+        @Override public int evalInt() { return (int) expr.evalReal(); }
     }
 
     public static class IntToBigIntegerNodeI extends ExprNodeI {
@@ -437,17 +1104,293 @@ public class InterpretTree {
         }
     }
 
-    public static class BigIntegerPowNodeI extends BinOpNodeI {
-        public BigIntegerPowNodeI(ExprNodeI left, ExprNodeI right) { super(left, right); }
-        @Override public BigInteger evalBigInteger() {
-            return left.evalBigInteger().pow(right.evalInt());
+
+    public static class ArrayAccessNodeI extends ExprNodeI {
+        public ExprNodeI array;          // Адрес заголовка массива
+        public ExprNodeI index;          // Индекс
+        public Memory.DataType elementType; // Тип элементов
+
+        public ArrayAccessNodeI(ExprNodeI array, ExprNodeI index, Memory.DataType elementType) {
+            this.array = array;
+            this.index = index;
+            this.elementType = elementType;
+        }
+
+        @Override
+        public int evalInt() {
+            if (elementType != Memory.DataType.INT) {
+                throw new RuntimeException("Type mismatch: expected INT, got " + elementType);
+            }
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            return Memory.getArrayElementInt(arrAddr, idx);
+        }
+
+        @Override
+        public double evalReal() {
+            if (elementType != Memory.DataType.DOUBLE) {
+                throw new RuntimeException("Type mismatch: expected DOUBLE, got " + elementType);
+            }
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            return Memory.getArrayElementDouble(arrAddr, idx);
+        }
+
+        @Override
+        public boolean evalBool() {
+            if (elementType != Memory.DataType.BOOLEAN) {
+                throw new RuntimeException("Type mismatch: expected BOOLEAN, got " + elementType);
+            }
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            return Memory.getArrayElementBoolean(arrAddr, idx);
+        }
+
+        @Override
+        public BigInteger evalBigInteger() {
+            if (elementType != Memory.DataType.BIG_INTEGER) {
+                throw new RuntimeException("Type mismatch: expected BIG_INTEGER, got " + elementType);
+            }
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            return Memory.getArrayElementBigInteger(arrAddr, idx);
         }
     }
 
-    public static class BigIntegerGcdNodeI extends BinOpNodeI {
-        public BigIntegerGcdNodeI(ExprNodeI left, ExprNodeI right) { super(left, right); }
-        @Override public BigInteger evalBigInteger() {
-            return left.evalBigInteger().gcd(right.evalBigInteger());
+    public static class ArrayLiteralNodeI extends ExprNodeI {
+        public ArrayList<ExprNodeI> elements;
+        public Memory.DataType elementType;
+
+        public ArrayLiteralNodeI(ArrayList<ExprNodeI> elements, Memory.DataType elementType) {
+            this.elements = elements;
+            this.elementType = elementType;
+        }
+
+        @Override
+        public int evalInt() {
+            int length = elements.size();
+            int arrayAddress = Memory.allocateArray(elementType, length);
+
+            for (int i = 0; i < length; i++) {
+                int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                ExprNodeI element = elements.get(i);
+
+                switch (elementType) {
+                    case INT:
+                        Memory.setInt(elementAddress, element.evalInt());
+                        break;
+                    case DOUBLE:
+                        Memory.setDouble(elementAddress, element.evalReal());
+                        break;
+                    case BOOLEAN:
+                        Memory.setBoolean(elementAddress, element.evalBool());
+                        break;
+                    case BIG_INTEGER:
+                        Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                        break;
+                }
+            }
+
+            return arrayAddress;
+        }
+    }
+
+    public static class ArrayDeclarationNodeI extends StatementNodeI {
+        public int variableAddress;      // Адрес переменной, хранящей адрес массива
+        public ExprNodeI size;           // Размер массива
+        public ArrayList<ExprNodeI> initialElements;
+        public Memory.DataType elementType;
+
+        public ArrayDeclarationNodeI(int variableAddress, ExprNodeI size,
+                                     ArrayList<ExprNodeI> initialElements,
+                                     Memory.DataType elementType) {
+            this.variableAddress = variableAddress;
+            this.size = size;
+            this.initialElements = initialElements;
+            this.elementType = elementType;
+        }
+
+        @Override
+        public void execute() {
+            int arraySize;
+            int arrayAddress;
+
+            if (size != null) {
+                arraySize = size.evalInt();
+                arrayAddress = Memory.allocateArray(elementType, arraySize);
+
+                if (initialElements != null && !initialElements.isEmpty()) {
+                    int initSize = Math.min(arraySize, initialElements.size());
+                    for (int i = 0; i < initSize; i++) {
+                        int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                        ExprNodeI element = initialElements.get(i);
+
+                        switch (elementType) {
+                            case INT:
+                                Memory.setInt(elementAddress, element.evalInt());
+                                break;
+                            case DOUBLE:
+                                Memory.setDouble(elementAddress, element.evalReal());
+                                break;
+                            case BOOLEAN:
+                                Memory.setBoolean(elementAddress, element.evalBool());
+                                break;
+                            case BIG_INTEGER:
+                                Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                                break;
+                        }
+                    }
+                }
+            } else if (initialElements != null && !initialElements.isEmpty()) {
+                arraySize = initialElements.size();
+                arrayAddress = Memory.allocateArray(elementType, arraySize);
+
+                for (int i = 0; i < arraySize; i++) {
+                    int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                    ExprNodeI element = initialElements.get(i);
+
+                    switch (elementType) {
+                        case INT:
+                            Memory.setInt(elementAddress, element.evalInt());
+                            break;
+                        case DOUBLE:
+                            Memory.setDouble(elementAddress, element.evalReal());
+                            break;
+                        case BOOLEAN:
+                            Memory.setBoolean(elementAddress, element.evalBool());
+                            break;
+                        case BIG_INTEGER:
+                            Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                            break;
+                    }
+                }
+            } else {
+                throw new RuntimeException("Array declaration must have either size or initializer");
+            }
+
+            Memory.setInt(variableAddress, arrayAddress);
+        }
+    }
+
+    public static class ArrayAssignIntNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            int val = value.evalInt();
+            Memory.setArrayElementInt(arrAddr, idx, val);
+        }
+    }
+
+    public static class ArrayAssignDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            double val = value.evalReal();
+            Memory.setArrayElementDouble(arrAddr, idx, val);
+        }
+    }
+
+    public static class ArrayAssignBooleanNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignBooleanNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            boolean val = value.evalBool();
+            Memory.setArrayElementBoolean(arrAddr, idx, val);
+        }
+    }
+
+    public static class ArrayAssignBigIntegerNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            BigInteger val = value.evalBigInteger();
+            Memory.setArrayElementBigInteger(arrAddr, idx, val);
+        }
+    }
+
+    public static class ArrayAssignPlusIntNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignPlusIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            int current = Memory.getArrayElementInt(arrAddr, idx);
+            int add = value.evalInt();
+            Memory.setArrayElementInt(arrAddr, idx, current + add);
+        }
+    }
+
+    public static class ArrayAssignPlusDoubleNodeI extends StatementNodeI {
+        public ExprNodeI array;
+        public ExprNodeI index;
+        public ExprNodeI value;
+
+        public ArrayAssignPlusDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
+            this.array = array;
+            this.index = index;
+            this.value = value;
+        }
+
+        @Override
+        public void execute() {
+            int arrAddr = array.evalInt();
+            int idx = index.evalInt();
+            double current = Memory.getArrayElementDouble(arrAddr, idx);
+            double add = value.evalReal();
+            Memory.setArrayElementDouble(arrAddr, idx, current + add);
         }
     }
 
@@ -466,7 +1409,6 @@ public class InterpretTree {
 
     public static class ExprListNodeI extends NodeI {
         public ArrayList<ExprNodeI> lst = new ArrayList<>();
-
         public void add(ExprNodeI ex) { lst.add(ex); }
     }
 
@@ -485,11 +1427,11 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignRealNodeI extends StatementNodeI {
+    public static class AssignDoubleNodeI extends StatementNodeI {
         public int address;
         public ExprNodeI expr;
 
-        public AssignRealNodeI(int address, ExprNodeI expr) {
+        public AssignDoubleNodeI(int address, ExprNodeI expr) {
             this.address = address;
             this.expr = expr;
         }
@@ -500,11 +1442,11 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignBoolNodeI extends StatementNodeI {
+    public static class AssignBooleanNodeI extends StatementNodeI {
         public int address;
         public ExprNodeI expr;
 
-        public AssignBoolNodeI(int address, ExprNodeI expr) {
+        public AssignBooleanNodeI(int address, ExprNodeI expr) {
             this.address = address;
             this.expr = expr;
         }
@@ -545,11 +1487,11 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignRealCNodeI extends StatementNodeI {
+    public static class AssignDoubleCNodeI extends StatementNodeI {
         public int address;
         public double val;
 
-        public AssignRealCNodeI(int address, double val) {
+        public AssignDoubleCNodeI(int address, double val) {
             this.address = address;
             this.val = val;
         }
@@ -557,21 +1499,6 @@ public class InterpretTree {
         @Override
         public void execute() {
             Memory.setDouble(address, val);
-        }
-    }
-
-    public static class AssignRealIntCNodeI extends StatementNodeI {
-        public int address;
-        public int val;
-
-        public AssignRealIntCNodeI(int address, int val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            Memory.setDouble(address, (double) val);
         }
     }
 
@@ -602,39 +1529,8 @@ public class InterpretTree {
         @Override
         public void execute() {
             int current = Memory.getInt(address);
-            Memory.setInt(address, current + expr.evalInt());
-        }
-    }
-
-    public static class AssignPlusRealNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignPlusRealNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current + expr.evalReal());
-        }
-    }
-
-    public static class AssignPlusBigIntegerNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignPlusBigIntegerNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.add(expr.evalBigInteger()));
+            int add = expr.evalInt();
+            Memory.setInt(address, current + add);
         }
     }
 
@@ -654,11 +1550,28 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignPlusRealCNodeI extends StatementNodeI {
+    public static class AssignPlusDoubleNodeI extends StatementNodeI {
+        public int address;
+        public ExprNodeI expr;
+
+        public AssignPlusDoubleNodeI(int address, ExprNodeI expr) {
+            this.address = address;
+            this.expr = expr;
+        }
+
+        @Override
+        public void execute() {
+            double current = Memory.getDouble(address);
+            double add = expr.evalReal();
+            Memory.setDouble(address, current + add);
+        }
+    }
+
+    public static class AssignPlusDoubleCNodeI extends StatementNodeI {
         public int address;
         public double val;
 
-        public AssignPlusRealCNodeI(int address, double val) {
+        public AssignPlusDoubleCNodeI(int address, double val) {
             this.address = address;
             this.val = val;
         }
@@ -670,19 +1583,20 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignPlusRealIntCNodeI extends StatementNodeI {
+    public static class AssignPlusBigIntegerNodeI extends StatementNodeI {
         public int address;
-        public int val;
+        public ExprNodeI expr;
 
-        public AssignPlusRealIntCNodeI(int address, int val) {
+        public AssignPlusBigIntegerNodeI(int address, ExprNodeI expr) {
             this.address = address;
-            this.val = val;
+            this.expr = expr;
         }
 
         @Override
         public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current + val);
+            BigInteger current = Memory.getBigInteger(address);
+            BigInteger add = expr.evalBigInteger();
+            Memory.setBigInteger(address, current.add(add));
         }
     }
 
@@ -714,39 +1628,8 @@ public class InterpretTree {
         @Override
         public void execute() {
             int current = Memory.getInt(address);
-            Memory.setInt(address, current - expr.evalInt());
-        }
-    }
-
-    public static class AssignMinusRealNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignMinusRealNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current - expr.evalReal());
-        }
-    }
-
-    public static class AssignMinusBigIntegerNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignMinusBigIntegerNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.subtract(expr.evalBigInteger()));
+            int sub = expr.evalInt();
+            Memory.setInt(address, current - sub);
         }
     }
 
@@ -766,54 +1649,6 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignMinusRealCNodeI extends StatementNodeI {
-        public int address;
-        public double val;
-
-        public AssignMinusRealCNodeI(int address, double val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current - val);
-        }
-    }
-
-    public static class AssignMinusRealIntCNodeI extends StatementNodeI {
-        public int address;
-        public int val;
-
-        public AssignMinusRealIntCNodeI(int address, int val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current - val);
-        }
-    }
-
-    public static class AssignMinusBigIntegerCNodeI extends StatementNodeI {
-        public int address;
-        public BigInteger val;
-
-        public AssignMinusBigIntegerCNodeI(int address, BigInteger val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.subtract(val));
-        }
-    }
-
     public static class AssignMultIntNodeI extends StatementNodeI {
         public int address;
         public ExprNodeI expr;
@@ -826,39 +1661,8 @@ public class InterpretTree {
         @Override
         public void execute() {
             int current = Memory.getInt(address);
-            Memory.setInt(address, current * expr.evalInt());
-        }
-    }
-
-    public static class AssignMultRealNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignMultRealNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current * expr.evalReal());
-        }
-    }
-
-    public static class AssignMultBigIntegerNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignMultBigIntegerNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.multiply(expr.evalBigInteger()));
+            int mul = expr.evalInt();
+            Memory.setInt(address, current * mul);
         }
     }
 
@@ -878,59 +1682,11 @@ public class InterpretTree {
         }
     }
 
-    public static class AssignMultRealCNodeI extends StatementNodeI {
-        public int address;
-        public double val;
-
-        public AssignMultRealCNodeI(int address, double val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current * val);
-        }
-    }
-
-    public static class AssignMultRealIntCNodeI extends StatementNodeI {
-        public int address;
-        public int val;
-
-        public AssignMultRealIntCNodeI(int address, int val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current * val);
-        }
-    }
-
-    public static class AssignMultBigIntegerCNodeI extends StatementNodeI {
-        public int address;
-        public BigInteger val;
-
-        public AssignMultBigIntegerCNodeI(int address, BigInteger val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.multiply(val));
-        }
-    }
-
-    public static class AssignDivRealNodeI extends StatementNodeI {
+    public static class AssignDivDoubleNodeI extends StatementNodeI {
         public int address;
         public ExprNodeI expr;
 
-        public AssignDivRealNodeI(int address, ExprNodeI expr) {
+        public AssignDivDoubleNodeI(int address, ExprNodeI expr) {
             this.address = address;
             this.expr = expr;
         }
@@ -938,31 +1694,16 @@ public class InterpretTree {
         @Override
         public void execute() {
             double current = Memory.getDouble(address);
-            Memory.setDouble(address, current / expr.evalReal());
+            double div = expr.evalReal();
+            Memory.setDouble(address, current / div);
         }
     }
 
-    public static class AssignDivBigIntegerNodeI extends StatementNodeI {
-        public int address;
-        public ExprNodeI expr;
-
-        public AssignDivBigIntegerNodeI(int address, ExprNodeI expr) {
-            this.address = address;
-            this.expr = expr;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.divide(expr.evalBigInteger()));
-        }
-    }
-
-    public static class AssignDivRealCNodeI extends StatementNodeI {
+    public static class AssignDivDoubleCNodeI extends StatementNodeI {
         public int address;
         public double val;
 
-        public AssignDivRealCNodeI(int address, double val) {
+        public AssignDivDoubleCNodeI(int address, double val) {
             this.address = address;
             this.val = val;
         }
@@ -973,238 +1714,6 @@ public class InterpretTree {
             Memory.setDouble(address, current / val);
         }
     }
-
-    public static class AssignDivRealIntCNodeI extends StatementNodeI {
-        public int address;
-        public int val;
-
-        public AssignDivRealIntCNodeI(int address, int val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            double current = Memory.getDouble(address);
-            Memory.setDouble(address, current / val);
-        }
-    }
-
-    public static class AssignDivBigIntegerCNodeI extends StatementNodeI {
-        public int address;
-        public BigInteger val;
-
-        public AssignDivBigIntegerCNodeI(int address, BigInteger val) {
-            this.address = address;
-            this.val = val;
-        }
-
-        @Override
-        public void execute() {
-            BigInteger current = Memory.getBigInteger(address);
-            Memory.setBigInteger(address, current.divide(val));
-        }
-    }
-
-    ///  Реализация массивов
-    public static class ArrayAccessNodeI extends ExprNodeI{
-        public ExprNodeI array;
-        public ExprNodeI index;
-        public int typeOfElements; // 0 - int, 1 - double, 2 - boolean, 3 - BigInteger
-
-        public ArrayAccessNodeI(ExprNodeI array, ExprNodeI index, int typeOfElements) {
-            this.array = array;
-            this.index = index;
-            this.typeOfElements = typeOfElements;
-        }
-
-        @Override
-        public int evalInt(){
-            return Memory.getArrayElementInt(array.evalInt(), index.evalInt());
-        }
-
-        @Override
-        public double evalReal() {
-            return Memory.getArrayElementDouble(array.evalInt(), index.evalInt());
-        }
-
-        @Override
-        public boolean evalBool() {
-            return Memory.getArrayElementBoolean(array.evalInt(), index.evalInt());
-        }
-
-        @Override
-        public BigInteger evalBigInteger() {
-            return Memory.getArrayElementBigInteger(array.evalInt(), index.evalInt());
-        }
-    }
-
-    public static class ArrayLiteralNodeI extends ExprNodeI{
-        public ArrayList<ExprNodeI> elements;
-        public int arrayType;
-
-        public ArrayLiteralNodeI(ArrayList<ExprNodeI> elements, int arrayType) {
-            this.elements = elements;
-            this.arrayType = arrayType;
-        }
-
-        @Override
-        public int evalInt(){
-            int size =  elements.size();
-            int address;
-            switch (arrayType) {
-                case 0: // int
-                    address = Memory.allocateIntArray(size);
-                    for(int i = 0; i < size; i++)
-                        Memory.setArrayElementInt(address, i, elements.get(i).evalInt());
-                    break;
-
-                case 1: // double
-                    address = Memory.allocateDoubleArray(size);
-                    for(int i = 0; i < size; i++)
-                        Memory.setArrayElementDouble(address, i, elements.get(i).evalReal());
-                    break;
-
-                case 2: // bool
-                    address = Memory.allocateBooleanArray(size);
-                    for(int i = 0; i < size; i++)
-                        Memory.setArrayElementBoolean(address, i, elements.get(i).evalBool());
-                    break;
-
-                case 3: //BigInteger
-                    address = Memory.allocateBigIntegerArray(size);
-                    for(int i = 0; i < size; i++)
-                        Memory.setArrayElementBigInteger(address, i, elements.get(i).evalBigInteger());
-                    break;
-
-                default:
-                    address = Memory.allocateObjectArray(size);
-                    break;
-            }
-            return address;
-        }
-    }
-
-    public static class ArrayDeclarationNodeI extends StatementNodeI{
-        public int address;
-        public ExprNodeI size;
-        public ArrayList<ExprNodeI> initialElements;
-        public int arrayType;
-
-        public ArrayDeclarationNodeI(int address, ExprNodeI size, ArrayList<ExprNodeI> initialElements, int arrayType) {
-            this.address = address;
-            this.size = size;
-            this.initialElements = initialElements;
-            this.arrayType = arrayType;
-        }
-
-        @Override
-        public void execute() {
-            if(size != null){
-                int arraySize = size.evalInt();
-                int arrayAddress;
-
-                switch (arrayType) {
-                    case 0: arrayAddress = Memory.allocateIntArray(arraySize); break;
-                    case 1: arrayAddress = Memory.allocateDoubleArray(arraySize); break;
-                    case 2: arrayAddress = Memory.allocateBooleanArray(arraySize); break;
-                    case 3: arrayAddress = Memory.allocateBigIntegerArray(arraySize); break;
-                    default: arrayAddress = Memory.allocateObjectArray(arraySize); break;
-                }
-
-                if(initialElements != null && !initialElements.isEmpty()){
-                    Object[] initialValues = new Object[initialElements.size()];
-                    for(int i = 0; i < initialElements.size(); i++){
-                        switch(arrayType){
-                            case 0: initialValues[i] = initialElements.get(i).evalInt(); break;
-                            case 1: initialValues[i] = initialElements.get(i).evalReal(); break;
-                            case 2: initialValues[i] = initialElements.get(i).evalBool(); break;
-                            case 3: initialValues[i] = initialElements.get(i).evalBigInteger(); break;
-                        }
-                        Memory.initializeArray(arrayAddress, initialValues);
-                    }
-                    Memory.setInt(address, arrayAddress);
-                }
-            }
-        }
-    }
-
-    // Узлы для присваивания элементам массива
-    public static class ArrayAssignIntNodeI extends StatementNodeI {
-        public ExprNodeI array;
-        public ExprNodeI index;
-        public ExprNodeI value;
-
-        public ArrayAssignIntNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
-            this.array = array;
-            this.index = index;
-            this.value = value;
-        }
-
-        @Override
-        public void execute() {
-            Memory.setArrayElementInt(array.evalInt(), index.evalInt(), value.evalInt());
-        }
-    }
-
-    public static class ArrayAssignDoubleNodeI extends StatementNodeI {
-        public ExprNodeI array;
-        public ExprNodeI index;
-        public ExprNodeI value;
-
-        public ArrayAssignDoubleNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
-            this.array = array;
-            this.index = index;
-            this.value = value;
-        }
-
-        @Override
-        public void execute() {
-            Memory.setArrayElementDouble(array.evalInt(), index.evalInt(), value.evalReal());
-        }
-    }
-
-    public static class ArrayAssignBooleanNodeI extends StatementNodeI {
-        public ExprNodeI array;
-        public ExprNodeI index;
-        public ExprNodeI value;
-
-        public ArrayAssignBooleanNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
-            this.array = array;
-            this.index = index;
-            this.value = value;
-        }
-
-        @Override
-        public void execute() {
-            Memory.setArrayElementBoolean(array.evalInt(), index.evalInt(), value.evalBool());
-        }
-    }
-
-    public static class ArrayAssignBigIntegerNodeI extends StatementNodeI {
-        public ExprNodeI array;
-        public ExprNodeI index;
-        public ExprNodeI value;
-
-        public ArrayAssignBigIntegerNodeI(ExprNodeI array, ExprNodeI index, ExprNodeI value) {
-            this.array = array;
-            this.index = index;
-            this.value = value;
-        }
-
-        @Override
-        public void execute() {
-            Memory.setArrayElementBigInteger(array.evalInt(), index.evalInt(), value.evalBigInteger());
-        }
-    }
-
-
-
-
-
-
-
-
 
     public static class IfNodeI extends StatementNodeI {
         public ExprNodeI condition;
@@ -1250,7 +1759,8 @@ public class InterpretTree {
         public StatementNodeI increment;
         public StatementNodeI body;
 
-        public ForNodeI(StatementNodeI start, ExprNodeI condition, StatementNodeI increment, StatementNodeI body) {
+        public ForNodeI(StatementNodeI start, ExprNodeI condition,
+                        StatementNodeI increment, StatementNodeI body) {
             this.start = start;
             this.condition = condition;
             this.increment = increment;
@@ -1278,49 +1788,25 @@ public class InterpretTree {
 
         @Override
         public void execute() {
-            if (("print".equals(name) || "Print".equals(name)) && pars != null) {
+            if ("print".equals(name) && pars != null) {
                 for (ExprNodeI expr : pars.lst) {
-                    if (expr instanceof InterpretTree.DoubleNodeI) {
-                        double value = ((InterpretTree.DoubleNodeI) expr).val;
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.IntNodeI) {
-                        int value = ((InterpretTree.IntNodeI) expr).val;
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.BigIntegerNodeI) {
-                        BigInteger value = ((InterpretTree.BigIntegerNodeI) expr).val;
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.IdNodeR) {
-                        double value = expr.evalReal();
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.IdNodeI) {
-                        int value = expr.evalInt();
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.IdNodeBI) {
-                        BigInteger value = expr.evalBigInteger();
-                        System.out.print(value);
-                    } else if (expr instanceof InterpretTree.IdNodeB) {
-                        boolean value = expr.evalBool();
-                        System.out.print(value);
-                    } else {
+                    try {
+                        System.out.print(expr.evalInt() + " ");
+                    } catch (Exception e1) {
                         try {
-                            System.out.print(expr.evalReal());
-                        } catch (Exception e1) {
+                            System.out.print(expr.evalReal() + " ");
+                        } catch (Exception e2) {
                             try {
-                                System.out.print(expr.evalInt());
-                            } catch (Exception e2) {
+                                System.out.print(expr.evalBool() + " ");
+                            } catch (Exception e3) {
                                 try {
-                                    System.out.print(expr.evalBigInteger());
-                                } catch (Exception e3) {
-                                    try {
-                                        System.out.print(expr.evalBool());
-                                    } catch (Exception e4) {
-                                        System.out.print("?");
-                                    }
+                                    System.out.print(expr.evalBigInteger() + " ");
+                                } catch (Exception e4) {
+                                    System.out.print("? ");
                                 }
                             }
                         }
                     }
-                    System.out.print(" ");
                 }
                 System.out.println();
             }

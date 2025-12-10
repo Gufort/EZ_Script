@@ -83,31 +83,26 @@ public class SymbolTable {
         return address;
     }
 
-    public static int allocateArray(SemanticType elementType, int size, int initialLength) {
-        int address = -1;
-        int actualSize = size > 0 ? size : initialLength;
-        if (actualSize <= 0) {
-            actualSize = 10;
-        }
-
-        switch(elementType) {
+    public static int allocateArray(SemanticType elementType, int size) {
+        Memory.DataType memType;
+        switch (elementType) {
             case IntType:
-                address = Memory.allocateIntArray(actualSize);
+                memType = Memory.DataType.INT;
                 break;
             case DoubleType:
-                address = Memory.allocateDoubleArray(actualSize);
+                memType = Memory.DataType.DOUBLE;
                 break;
             case BoolType:
-                address = Memory.allocateBooleanArray(actualSize);
+                memType = Memory.DataType.BOOLEAN;
                 break;
             case BigIntegerType:
-                address = Memory.allocateBigIntegerArray(actualSize);
+                memType = Memory.DataType.BIG_INTEGER;
                 break;
             default:
-                address = Memory.allocateObjectArray(actualSize);
-                break;
+                throw new RuntimeException("Unsupported array element type: " + elementType);
         }
 
+        int address = Memory.allocateArray(memType, size);
         return address;
     }
 
