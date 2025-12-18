@@ -1172,7 +1172,7 @@ public class InterpretTree {
             int arrayAddress = Memory.allocateArray(elementType, length);
 
             for (int i = 0; i < length; i++) {
-                int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                 ExprNodeI element = elements.get(i);
 
                 switch (elementType) {
@@ -1222,7 +1222,7 @@ public class InterpretTree {
                 if (initialElements != null && !initialElements.isEmpty()) {
                     int initSize = Math.min(arraySize, initialElements.size());
                     for (int i = 0; i < initSize; i++) {
-                        int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                        int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                         ExprNodeI element = initialElements.get(i);
 
                         switch (elementType) {
@@ -1246,7 +1246,7 @@ public class InterpretTree {
                 arrayAddress = Memory.allocateArray(elementType, arraySize);
 
                 for (int i = 0; i < arraySize; i++) {
-                    int elementAddress = Memory.getArrayElementAddress(arrayAddress, i);
+                    int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                     ExprNodeI element = initialElements.get(i);
 
                     switch (elementType) {

@@ -31,19 +31,14 @@ public class Memory {
         }
     }
 
-
     public static class MemoryBlock {
         public int address; // Базовый адрес
         public int size; // Размер в байтах
-        public int elementSize; // Размер элемента в байтах
-        public int length; // Количество элементов
         public DataType type; // Тип данных
 
-        public MemoryBlock(int address, int size, int elementSize, int length, DataType type) {
+        public MemoryBlock(int address, int size, DataType type) {
             this.address = address;
             this.size = size;
-            this.elementSize = elementSize;
-            this.length = length;
             this.type = type;
         }
     }
@@ -75,98 +70,58 @@ public class Memory {
 
     ///  Выделение массива
     public static int allocateArray(DataType elementType, int length){
-        // 4 байта под тип, 4 байта под длину и 4 байта под указатель
-        int headerSize = 12;
-        int dataSize = elementType.size * length;
-        int totalSize = headerSize + dataSize;
-
+        int totalSize = elementType.size * length;
         int address = allocate(totalSize);
-        allocatedBlocks.put(address, new MemoryBlock(address, totalSize, elementType.size, length, elementType));
+        allocatedBlocks.put(address, new MemoryBlock(address, totalSize, elementType));
 
-        // Запись заголовка
         memory.position(address);
-        memory.putInt(elementType.ordinal(), length); // тип
-        memory.putInt(length); // длина
-        memory.putInt(headerSize + address); // указатель на данные
-
+        for (int i = 0; i < totalSize; i++) {
+            memory.put((byte)0);
+        }
         return address;
     }
 
-    // Инициализация элементов значениями по умолчанию
-    private static void initializeElement(int address, DataType dataType) {
-        switch (dataType) {
-            case INT: setInt(address, 0); break;
-            case DOUBLE: setDouble(address, 0.0); break;
-            case BOOLEAN: setBoolean(address, false); break;
-            case BIG_INTEGER: setBigInteger(address, BigInteger.ZERO); break;
-        }
-    }
-
-    ///  Работа с массивами
-    public static int getArrayElementAddress(int arrayAddress, int index) {
-        memory.position(arrayAddress);
-        int type = memory.getInt(); // пропуск типа
-        int length = memory.getInt(); // пропуск длины
-        int ptr =  memory.getInt(); // пропуск указателя на данные
-
-        if(index < 0 || index >= length)
-            throw new RuntimeException("index out of bounds " + index);
-
-        MemoryBlock block = allocatedBlocks.get(arrayAddress);
-        if(block == null)
-            throw new RuntimeException("Invalid array address");
-
-        return ptr + index * block.elementSize;
-    }
-
-    public static int getArrayLength(int arrayAddress) {
-        memory.position(arrayAddress + 4); // пропуск типа
-        return memory.getInt();
-    }
-
-    public static DataType getArrayType(int arrayAddress) {
-        memory.position(arrayAddress);
-        int typeOrdinal = memory.getInt();
-        return DataType.values()[typeOrdinal];
+    public static int getArrayElementAddress(int arrayAddress, int index, DataType elementType) {
+        return arrayAddress + index * elementType.size;
     }
 
     public static void setArrayElementInt(int arrayAddress, int index, int value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.INT);
         setInt(elementAddress, value);
     }
 
     public static int getArrayElementInt(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.INT);
         return getInt(elementAddress);
     }
 
     public static void setArrayElementDouble(int arrayAddress, int index, double value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.DOUBLE);
         setDouble(elementAddress, value);
     }
 
     public static double getArrayElementDouble(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.DOUBLE);
         return getDouble(elementAddress);
     }
 
     public static void setArrayElementBoolean(int arrayAddress, int index, boolean value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BOOLEAN);
         setBoolean(elementAddress, value);
     }
 
     public static boolean getArrayElementBoolean(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BOOLEAN);
         return getBoolean(elementAddress);
     }
 
     public static void setArrayElementBigInteger(int arrayAddress, int index, BigInteger value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BIG_INTEGER);
         setBigInteger(elementAddress, value);
     }
 
     public static BigInteger getArrayElementBigInteger(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index);
+        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BIG_INTEGER);
         return getBigInteger(elementAddress);
     }
 
@@ -199,7 +154,6 @@ public class Memory {
         memory.put(littleEndianBytes);
     }
 
-
     public static int getInt(int address) {
         memory.position(address);
         return memory.getInt();
@@ -227,9 +181,6 @@ public class Memory {
 
         return new BigInteger(bigEndianBytes);
     }
-
-
-
 
     private static int allocate(int size){
         if(nextAddress + size > TOTAL_MEMORY)
@@ -259,5 +210,4 @@ public class Memory {
             System.out.println();
         }
     }
-
 }
