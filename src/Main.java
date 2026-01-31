@@ -261,9 +261,7 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception{
-        String text = "arr = [1,2,3,4]; arr[2] = arr[2] + 3; print(arr[2]); " +
-                "for(i = 0; i < 4; i += 1) do " +
-                "{ print(arr[i]) }";
+        String text = "arr = [1bi,2bi,3bi,4bi]; print(arr[2])";
 
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -322,22 +320,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        tenthTest();
+        thirdTest();
     }
 }
-
-//        fourthTest();
-//        System.out.println("_________________");
-//        thirdTest();
-//        System.out.println("_________________");
-//        seventhTest();
-//
-//
-//
-//        long startTime = System.nanoTime();
-//        var result = testLoop();
-//        long endTime = System.nanoTime();
-//        long duration = (endTime - startTime) / 1_000_000;
-//
-//        System.out.println("Результат: " + result);
-//        System.out.println("Время выполнения: " + duration + " мс");

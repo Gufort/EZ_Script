@@ -15,7 +15,7 @@ public class Memory {
     private static int nextAddress = 0;
 
     static{
-        memory.order(ByteOrder.LITTLE_ENDIAN); // инверсная запись, младший байт спереди
+        memory.order(ByteOrder.BIG_ENDIAN);
     }
 
     public enum DataType {
@@ -68,13 +68,14 @@ public class Memory {
         return address;
     }
 
-    ///  Выделение массива
+    /// Выделение массива
     public static int allocateArray(DataType elementType, int length){
         int totalSize = elementType.size * length;
         int address = allocate(totalSize);
         allocatedBlocks.put(address, new MemoryBlock(address, totalSize, elementType));
 
         memory.position(address);
+        // Быстрая инициализация нулями
         for (int i = 0; i < totalSize; i++) {
             memory.put((byte)0);
         }
@@ -144,14 +145,19 @@ public class Memory {
     public static void setBigInteger(int address, BigInteger value) {
         memory.position(address);
         byte[] bytes = value.toByteArray();
-        byte[] littleEndianBytes = new byte[16];
+        int bytesLength = bytes.length;
 
-        int len = Math.min(bytes.length, 16);
-        for (int i = 0; i < len; i++) {
-            littleEndianBytes[i] = bytes[bytes.length - 1 - i]; // инвертируем порядок
+        if (bytesLength <= 16) {
+            if (bytesLength < 16) {
+                for (int i = 0; i < 16 - bytesLength; i++) {
+                    memory.put((byte)0);
+                }
+            }
+            memory.put(bytes, 0, bytesLength);
+        } else {
+            int startPos = bytesLength - 16;
+            memory.put(bytes, startPos, 16);
         }
-
-        memory.put(littleEndianBytes);
     }
 
     public static int getInt(int address) {
@@ -171,15 +177,50 @@ public class Memory {
 
     public static BigInteger getBigInteger(int address) {
         memory.position(address);
-        byte[] littleEndianBytes = new byte[16];
-        memory.get(littleEndianBytes);
+        byte[] bytes = new byte[16];
+        // Читаем сразу 16 байт
+        memory.get(bytes, 0, 16);
+        return new BigInteger(bytes);
+    }
 
-        byte[] bigEndianBytes = new byte[16];
-        for (int i = 0; i < 16; i++) {
-            bigEndianBytes[i] = littleEndianBytes[15 - i];
+    /// Оптимизированные версии для часто используемых BigIntegers
+    public static void setBigIntegerOptimized(int address, BigInteger value) {
+        if (value.bitLength() <= 63) {
+            long longValue = value.longValue();
+            memory.position(address);
+
+            if (value.signum() >= 0) {
+                // Положительное число
+                memory.putLong(longValue);
+                memory.putLong(0L);
+            } else {
+                // Отрицательное число
+                memory.putLong(longValue);
+                memory.putLong(-1L);
+            }
+            return;
         }
 
-        return new BigInteger(bigEndianBytes);
+        setBigInteger(address, value);
+    }
+
+    public static BigInteger getBigIntegerOptimized(int address) {
+        memory.position(address);
+        long low = memory.getLong();
+        long high = memory.getLong();
+
+        if (high == 0L) {
+            return BigInteger.valueOf(low);
+        } else if (high == -1L) {
+            if (low < 0) {
+                return BigInteger.valueOf(low);
+            }
+        }
+
+        memory.position(address);
+        byte[] bytes = new byte[16];
+        memory.get(bytes, 0, 16);
+        return new BigInteger(bytes);
     }
 
     private static int allocate(int size){
@@ -190,18 +231,8 @@ public class Memory {
         return address;
     }
 
-    public static void reset() {
-        memory.clear();
-        allocatedBlocks.clear();
-        nextAddress = 0;
-        // Заполняем нулями
-        for (int i = 0; i < TOTAL_MEMORY; i++) {
-            memory.put(i, (byte)0);
-        }
-    }
-
     public static void dumpMemory(int start, int length) {
-        System.out.println("=== Memory Dump ===");
+        System.out.println("=== Memory Dump (BIG-ENDIAN) ===");
         for (int i = start; i < start + length; i += 16) {
             System.out.printf("0x%04X: ", i);
             for (int j = 0; j < 16 && i + j < TOTAL_MEMORY; j++) {
