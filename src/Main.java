@@ -243,7 +243,7 @@ public class Main {
     }
 
     public static void ninethTest() throws Exception{
-        String text = "arr = [1,2,3,4]; arr[2] = 2";
+        String text = "arr = [1,2,3,4]; print(arr)";
         var lex = new LexerUnit.Lexer(text);
         try{
             var par = new Parser(lex);
@@ -320,6 +320,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        thirdTest();
+        seventhTest();
     }
 }

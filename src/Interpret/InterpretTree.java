@@ -1170,27 +1170,23 @@ public class InterpretTree {
         public int evalInt() {
             int length = elements.size();
             int arrayAddress = Memory.allocateArray(elementType, length);
-
             for (int i = 0; i < length; i++) {
-                int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                 ExprNodeI element = elements.get(i);
-
                 switch (elementType) {
                     case INT:
-                        Memory.setInt(elementAddress, element.evalInt());
+                        Memory.setArrayElementInt(arrayAddress, i, element.evalInt());
                         break;
                     case DOUBLE:
-                        Memory.setDouble(elementAddress, element.evalReal());
+                        Memory.setArrayElementDouble(arrayAddress, i, element.evalReal());
                         break;
                     case BOOLEAN:
-                        Memory.setBoolean(elementAddress, element.evalBool());
+                        Memory.setArrayElementBoolean(arrayAddress, i, element.evalBool());
                         break;
                     case BIG_INTEGER:
-                        Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                        Memory.setArrayElementBigInteger(arrayAddress, i, element.evalBigInteger());
                         break;
                 }
             }
-
             return arrayAddress;
         }
     }

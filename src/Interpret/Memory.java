@@ -3,242 +3,346 @@ package Interpret;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Memory {
-    private static final int TOTAL_MEMORY = 65536;
-    private static ByteBuffer memory = ByteBuffer.allocate(TOTAL_MEMORY);
+    private static final int STATIC_SIZE = 32768;
+    private static final int DYNAMIC_SIZE = 32768;
 
-    // Карта для отслеживания выделенных областей
-    private static Map<Integer, MemoryBlock> allocatedBlocks = new HashMap<>();
-    private static int nextAddress = 0;
+    private static final ByteBuffer staticMemory = ByteBuffer.allocate(STATIC_SIZE);
+    private static final ByteBuffer dynamicMemory = ByteBuffer.allocate(DYNAMIC_SIZE);
+
+    private static int staticNextAddress = 0;
+    private static int dynamicNextAddres = 0;
+
+    // => Отслеживание выделения памяти
+    private static Map<Integer, StaticAllocation> staticAllocations = new HashMap<>();
+    private static Map<Integer, DynamicAllocation> dynamicAllocations = new HashMap<>();
+
+    // => Свободные блоки
+    private static List<FreeBlock> freeBlocks = new ArrayList<>();
 
     static{
-        memory.order(ByteOrder.BIG_ENDIAN);
+        staticMemory.order(ByteOrder.BIG_ENDIAN);
+        dynamicMemory.order(ByteOrder.BIG_ENDIAN);
+        freeBlocks.add(new FreeBlock(0, DYNAMIC_SIZE));
     }
 
-    public enum DataType {
+    // => Вспомогательные внутренние классы
+    public enum DataType{
         INT(4),
         DOUBLE(8),
         BOOLEAN(1),
-        BIG_INTEGER(16),
-        POINTER(4); // 4 байта под указатели
+        BIG_INTEGER(-1),
+        ARRAY_POINTER(4);
 
-        public int size;
-        DataType(int size) {
-            this.size = size;
-        }
+        public final int fixedSize;
+        DataType(int size) { this.fixedSize = size; }
+        public boolean hasFixedSize() { return fixedSize > 0; }
     }
 
-    public static class MemoryBlock {
-        public int address; // Базовый адрес
-        public int size; // Размер в байтах
-        public DataType type; // Тип данных
-
-        public MemoryBlock(int address, int size, DataType type) {
+    private static class StaticAllocation{
+        int address;
+        int size;
+        DataType type;
+        StaticAllocation(int address, int size, DataType type) {
             this.address = address;
             this.size = size;
             this.type = type;
         }
     }
 
-    /// Выделение памяти для примитивных типов
+    private static class DynamicAllocation{
+        int address;
+        int size;
+        DataType type;
+        DynamicAllocation(int address, int size, DataType type) {
+            this.address = address;
+            this.size = size;
+            this.type = type;
+        }
+    }
+
+    private static class FreeBlock{
+        int address;
+        int size;
+        FreeBlock(int address, int size){
+            this.address = address;
+            this.size = size;
+        }
+    }
+
+
+    // => Выделения статической памяти
+    private static int allocateStatic(int size){
+        if(staticNextAddress + size > STATIC_SIZE)
+            throw new RuntimeException("Out of static memory!");
+        int address = staticNextAddress;
+        staticNextAddress += size;
+        return address;
+    }
+
     public static int allocateInt(int value){
-        int address = allocate(DataType.INT.size);
-        setInt(address, value);
+        int address = allocateStatic(DataType.INT.fixedSize);
+        staticMemory.putInt(address, value);
+        staticAllocations.put(address, new StaticAllocation(address, DataType.INT.fixedSize, DataType.INT));
         return address;
     }
 
     public static int allocateDouble(double value) {
-        int address = allocate(DataType.DOUBLE.size);
-        setDouble(address, value);
-        return address;
+        int addr = allocateStatic(DataType.DOUBLE.fixedSize);
+        staticMemory.putDouble(addr, value);
+        staticAllocations.put(addr, new StaticAllocation(addr, DataType.DOUBLE.fixedSize, DataType.DOUBLE));
+        return addr;
     }
 
     public static int allocateBoolean(boolean value) {
-        int address = allocate(DataType.BOOLEAN.size);
-        setBoolean(address, value);
-        return address;
+        int addr = allocateStatic(DataType.BOOLEAN.fixedSize);
+        staticMemory.put(addr, (byte)(value ? 1 : 0));
+        staticAllocations.put(addr, new StaticAllocation(addr, DataType.BOOLEAN.fixedSize, DataType.BOOLEAN));
+        return addr;
     }
 
-    public static int allocateBigInteger(BigInteger value) {
-        int address = allocate(DataType.BIG_INTEGER.size);
-        setBigInteger(address, value);
-        return address;
-    }
-
-    /// Выделение массива
-    public static int allocateArray(DataType elementType, int length){
-        int totalSize = elementType.size * length;
-        int address = allocate(totalSize);
-        allocatedBlocks.put(address, new MemoryBlock(address, totalSize, elementType));
-
-        memory.position(address);
-        // Быстрая инициализация нулями
-        for (int i = 0; i < totalSize; i++) {
-            memory.put((byte)0);
-        }
-        return address;
-    }
-
-    public static int getArrayElementAddress(int arrayAddress, int index, DataType elementType) {
-        return arrayAddress + index * elementType.size;
-    }
-
-    public static void setArrayElementInt(int arrayAddress, int index, int value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.INT);
-        setInt(elementAddress, value);
-    }
-
-    public static int getArrayElementInt(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.INT);
-        return getInt(elementAddress);
-    }
-
-    public static void setArrayElementDouble(int arrayAddress, int index, double value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.DOUBLE);
-        setDouble(elementAddress, value);
-    }
-
-    public static double getArrayElementDouble(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.DOUBLE);
-        return getDouble(elementAddress);
-    }
-
-    public static void setArrayElementBoolean(int arrayAddress, int index, boolean value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BOOLEAN);
-        setBoolean(elementAddress, value);
-    }
-
-    public static boolean getArrayElementBoolean(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BOOLEAN);
-        return getBoolean(elementAddress);
-    }
-
-    public static void setArrayElementBigInteger(int arrayAddress, int index, BigInteger value) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BIG_INTEGER);
-        setBigInteger(elementAddress, value);
-    }
-
-    public static BigInteger getArrayElementBigInteger(int arrayAddress, int index) {
-        int elementAddress = getArrayElementAddress(arrayAddress, index, DataType.BIG_INTEGER);
-        return getBigInteger(elementAddress);
-    }
-
-    /// Операции с памятью
-    public static void setInt(int address, int value){
-        memory.position(address);
-        memory.putInt(value);
-    }
-
-    public static void setDouble(int address, double value){
-        memory.position(address);
-        memory.putDouble(value);
-    }
-
-    public static void setBoolean(int address, boolean value){
-        memory.position(address);
-        memory.put(value ? (byte)1 : (byte)0);
-    }
-
-    public static void setBigInteger(int address, BigInteger value) {
-        memory.position(address);
+    public static int allocateBigInteger(BigInteger value){
         byte[] bytes = value.toByteArray();
-        int bytesLength = bytes.length;
+        int dynamicAddress = allocateDynamic(bytes.length);
+        dynamicMemory.position(dynamicAddress);
+        dynamicMemory.put(bytes);
+        int ptrAddress = allocateStatic(DataType.ARRAY_POINTER.fixedSize);
+        staticMemory.putInt(ptrAddress, dynamicAddress);
+        dynamicAllocations.put(dynamicAddress, new DynamicAllocation(dynamicAddress, bytes.length, DataType.BIG_INTEGER));
+        return ptrAddress;
+    }
 
-        if (bytesLength <= 16) {
-            if (bytesLength < 16) {
-                for (int i = 0; i < 16 - bytesLength; i++) {
-                    memory.put((byte)0);
+
+    // => Выделения динамической памяти
+    private static int allocateDynamic(int size){
+        for(int i = 0; i < freeBlocks.size(); i++){
+            FreeBlock block = freeBlocks.get(i);
+            if(block.size >= size){
+                int address = block.address;
+                if(block.size == size)
+                    freeBlocks.remove(i);
+                else{
+                    block.address += size;
+                    block.size -= size;
                 }
+                return address;
             }
-            memory.put(bytes, 0, bytesLength);
-        } else {
-            int startPos = bytesLength - 16;
-            memory.put(bytes, startPos, 16);
+        }
+        throw new RuntimeException("Out of dynamic memory!");
+    }
+
+    private static void freeDynamic(int address, int size){
+        freeBlocks.add(new FreeBlock(address, size));
+        coalesceFreeBlocks();
+    }
+
+    private static void coalesceFreeBlocks(){
+        freeBlocks.sort(Comparator.comparingInt(a -> a.address));
+        for(int i = 0; i < freeBlocks.size() - 1; i++){
+            var current = freeBlocks.get(i);
+            var next = freeBlocks.get(i + 1);
+            if(current.address + current.size == next.address){
+                current.size += next.size;
+                freeBlocks.remove(i + 1);
+                i--;
+            }
         }
     }
 
-    public static int getInt(int address) {
-        memory.position(address);
-        return memory.getInt();
+    // => Массивы
+    public static int allocateArray(DataType elementType, int size){
+        if(elementType.hasFixedSize()){
+            int totalSize = elementType.fixedSize * size;
+            int dynamicAddress = allocateDynamic(totalSize);
+            // Инициализация нулями
+            for (int i = 0; i < totalSize; i++) {
+                dynamicMemory.put(dynamicAddress + i, (byte) 0);
+            }
+            int ptrAddress = allocateStatic(DataType.ARRAY_POINTER.fixedSize);
+            staticMemory.putInt(ptrAddress, dynamicAddress);
+            dynamicAllocations.put(dynamicAddress, new DynamicAllocation(dynamicAddress, totalSize, elementType));
+            return ptrAddress;
+        }
+        else if(elementType == DataType.BIG_INTEGER){
+            int ptrArraySize = DataType.ARRAY_POINTER.fixedSize * size;
+            int dynamicAddress = allocateDynamic(ptrArraySize);
+            // Инициализация нулями
+            for (int i = 0; i < ptrArraySize; i++) {
+                dynamicMemory.put(dynamicAddress + i, (byte) 0);
+            }
+            int arrayPtr = allocateStatic(DataType.ARRAY_POINTER.fixedSize);
+            staticMemory.putInt(arrayPtr, dynamicAddress);
+            dynamicAllocations.put(dynamicAddress, new DynamicAllocation(dynamicAddress, ptrArraySize, DataType.ARRAY_POINTER));
+            return  arrayPtr;
+        }
+        throw new RuntimeException("Unsupported array element type: " + elementType);
     }
 
-    public static double getDouble(int address) {
-        memory.position(address);
-        return memory.getDouble();
+    public static int getArrayElementAddress(int arrayPointer, int index, DataType elementType){
+        int base = staticMemory.getInt(arrayPointer);
+        if(elementType.hasFixedSize())
+            return base + index * elementType.fixedSize;
+        else if(elementType == DataType.BIG_INTEGER)
+            return base + index * DataType.ARRAY_POINTER.fixedSize;
+        throw new RuntimeException("Unsupported element type: " + elementType);
     }
 
-    public static boolean getBoolean(int address) {
-        memory.position(address);
-        return memory.get() != 0;
-    }
+    // => Операции с типами
+    public static void setInt(int address, int value) { staticMemory.putInt(address, value); }
+    public static int getInt(int address) { return staticMemory.getInt(address); }
 
-    public static BigInteger getBigInteger(int address) {
-        memory.position(address);
-        byte[] bytes = new byte[16];
-        // Читаем сразу 16 байт
-        memory.get(bytes, 0, 16);
-        return new BigInteger(bytes);
-    }
+    public static void setDouble(int address, double value) { staticMemory.putDouble(address, value); }
+    public static double getDouble(int address) { return staticMemory.getDouble(address); }
 
-    /// Оптимизированные версии для часто используемых BigIntegers
-    public static void setBigIntegerOptimized(int address, BigInteger value) {
-        if (value.bitLength() <= 63) {
-            long longValue = value.longValue();
-            memory.position(address);
+    public static void setBoolean(int address, boolean value) { staticMemory.put(address, (byte)(value ? 1 : 0)); }
+    public static boolean getBoolean(int address) { return staticMemory.get(address) != 0; }
 
-            if (value.signum() >= 0) {
-                // Положительное число
-                memory.putLong(longValue);
-                memory.putLong(0L);
-            } else {
-                // Отрицательное число
-                memory.putLong(longValue);
-                memory.putLong(-1L);
+    public static void setBigInteger(int pointerAddress, BigInteger value){
+        int currentDataAddress = staticMemory.getInt(pointerAddress);
+        byte[] newBytes = value.toByteArray();
+        int newSize = newBytes.length;
+
+        DynamicAllocation oldAlloc = dynamicAllocations.get(currentDataAddress);
+
+        if(oldAlloc != null && oldAlloc.size >= newSize){
+            dynamicMemory.position(currentDataAddress);
+            dynamicMemory.put(newBytes);
+            for (int i = newSize; i < oldAlloc.size; i++) {
+                dynamicMemory.put((byte) 0);
             }
             return;
         }
 
-        setBigInteger(address, value);
+        if (oldAlloc != null)
+            freeDynamic(currentDataAddress, oldAlloc.size);
+
+        int newDataAddr = allocateDynamic(newSize);
+        dynamicMemory.position(newDataAddr);
+        dynamicMemory.put(newBytes);
+        staticMemory.putInt(pointerAddress, newDataAddr);
+        dynamicAllocations.put(newDataAddr, new DynamicAllocation(newDataAddr, newSize, DataType.BIG_INTEGER));
     }
 
-    public static BigInteger getBigIntegerOptimized(int address) {
-        memory.position(address);
-        long low = memory.getLong();
-        long high = memory.getLong();
+    public static BigInteger getBigInteger(int pointerAddress) {
+        int dataAddr = staticMemory.getInt(pointerAddress);
+        DynamicAllocation alloc = dynamicAllocations.get(dataAddr);
 
-        if (high == 0L) {
-            return BigInteger.valueOf(low);
-        } else if (high == -1L) {
-            if (low < 0) {
-                return BigInteger.valueOf(low);
-            }
-        }
+        if (alloc == null || alloc.type != DataType.BIG_INTEGER)
+            throw new RuntimeException("Invalid BigInteger pointer");
 
-        memory.position(address);
-        byte[] bytes = new byte[16];
-        memory.get(bytes, 0, 16);
+        byte[] bytes = new byte[alloc.size];
+        dynamicMemory.position(dataAddr);
+        dynamicMemory.get(bytes);
         return new BigInteger(bytes);
     }
 
-    private static int allocate(int size){
-        if(nextAddress + size > TOTAL_MEMORY)
-            throw new RuntimeException("Out of Memory!");
-        int address = nextAddress;
-        nextAddress += size;
-        return address;
+    // => Работа с элементами массива
+    public static void setArrayElementInt(int arrayPointer, int index, int value) {
+        int addr = getArrayElementAddress(arrayPointer, index, DataType.INT);
+        dynamicMemory.putInt(addr, value);
     }
 
-    public static void dumpMemory(int start, int length) {
-        System.out.println("=== Memory Dump (BIG-ENDIAN) ===");
-        for (int i = start; i < start + length; i += 16) {
+    public static int getArrayElementInt(int arrayPointer, int index) {
+        return dynamicMemory.getInt(getArrayElementAddress(arrayPointer, index, DataType.INT));
+    }
+
+    public static void setArrayElementDouble(int arrayPointer, int index, double value) {
+        int addr = getArrayElementAddress(arrayPointer, index, DataType.DOUBLE);
+        dynamicMemory.putDouble(addr, value);
+    }
+
+    public static double getArrayElementDouble(int arrayPointer, int index) {
+        return dynamicMemory.getDouble(getArrayElementAddress(arrayPointer, index, DataType.DOUBLE));
+    }
+
+    public static void setArrayElementBoolean(int arrayPointer, int index, boolean value) {
+        int addr = getArrayElementAddress(arrayPointer, index, DataType.BOOLEAN);
+        dynamicMemory.put(addr, (byte)(value ? 1 : 0));
+    }
+
+    public static boolean getArrayElementBoolean(int arrayPointer, int index) {
+        return dynamicMemory.get(getArrayElementAddress(arrayPointer, index, DataType.BOOLEAN)) != 0;
+    }
+
+    public static void setArrayElementBigInteger(int arrayPointer, int index, BigInteger value){
+        int ptrAddr = getArrayElementAddress(arrayPointer, index, DataType.BIG_INTEGER);
+        int currentDataAddr = dynamicMemory.getInt(ptrAddr);
+        byte[] newBytes = value.toByteArray();
+        int newSize = newBytes.length;
+
+        DynamicAllocation oldAlloc = dynamicAllocations.get(currentDataAddr);
+        if (oldAlloc != null && oldAlloc.size >= newSize) {
+            dynamicMemory.position(currentDataAddr);
+            dynamicMemory.put(newBytes);
+            for (int i = newSize; i < oldAlloc.size; i++) {
+                dynamicMemory.put((byte) 0);
+            }
+            return;
+        }
+
+        if (oldAlloc != null) {
+            freeDynamic(currentDataAddr, oldAlloc.size);
+        }
+
+        int newDataAddr = allocateDynamic(newSize);
+        dynamicMemory.position(newDataAddr);
+        dynamicMemory.put(newBytes);
+        dynamicMemory.putInt(ptrAddr, newDataAddr);
+        dynamicAllocations.put(newDataAddr, new DynamicAllocation(newDataAddr, newSize, DataType.BIG_INTEGER));
+    }
+
+    public static BigInteger getArrayElementBigInteger(int arrayPointer, int index) {
+        int ptrAddr = getArrayElementAddress(arrayPointer, index, DataType.BIG_INTEGER);
+        int dataAddr = dynamicMemory.getInt(ptrAddr);
+        if (dataAddr == 0) return BigInteger.ZERO;
+
+        DynamicAllocation alloc = dynamicAllocations.get(dataAddr);
+        if (alloc == null || alloc.type != DataType.BIG_INTEGER) {
+            throw new RuntimeException("Invalid BigInteger in array at index " + index);
+        }
+
+        byte[] bytes = new byte[alloc.size];
+        dynamicMemory.position(dataAddr);
+        dynamicMemory.get(bytes);
+        return new BigInteger(bytes);
+    }
+
+    // => различные вспомогательные методы
+    public static void dumpMemory() {
+        System.out.println("=== Static Memory Dump ===");
+        dumpBuffer(staticMemory, STATIC_SIZE);
+
+        System.out.println("\n=== Dynamic Memory Dump ===");
+        dumpBuffer(dynamicMemory, DYNAMIC_SIZE);
+    }
+
+    private static void dumpBuffer(ByteBuffer buf, int size) {
+        buf.rewind();
+        for (int i = 0; i < size; i += 16) {
             System.out.printf("0x%04X: ", i);
-            for (int j = 0; j < 16 && i + j < TOTAL_MEMORY; j++) {
-                System.out.printf("%02X ", memory.get(i + j));
+            for (int j = 0; j < 16 && i + j < size; j++) {
+                System.out.printf("%02X ", buf.get(i + j) & 0xFF);
             }
             System.out.println();
+        }
+    }
+
+    public static void dumpAllocations() {
+        System.out.println("=== Static Allocations ===");
+        for (StaticAllocation a : staticAllocations.values()) {
+            System.out.printf("Addr: 0x%04X, Size: %d, Type: %s%n", a.address, a.size, a.type);
+        }
+
+        System.out.println("=== Dynamic Allocations ===");
+        for (DynamicAllocation a : dynamicAllocations.values()) {
+            System.out.printf("Addr: 0x%04X, Size: %d, Type: %s%n", a.address, a.size, a.type);
+        }
+
+        System.out.println("=== Free Blocks ===");
+        for (FreeBlock b : freeBlocks) {
+            System.out.printf("Addr: 0x%04X, Size: %d%n", b.address, b.size);
         }
     }
 }
