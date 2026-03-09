@@ -13,11 +13,14 @@ public class Memory {
     private static final ByteBuffer dynamicMemory = ByteBuffer.allocate(DYNAMIC_SIZE);
 
     private static int staticNextAddress = 0;
-    private static int dynamicNextAddres = 0;
+    private static int dynamicNextAddress = 0;
 
     // => Отслеживание выделения памяти
     private static Map<Integer, StaticAllocation> staticAllocations = new HashMap<>();
     private static Map<Integer, DynamicAllocation> dynamicAllocations = new HashMap<>();
+
+    private static AllocationStrategy strategy = AllocationStrategy.FIRST_FIT;
+
 
     // => Свободные блоки
     private static List<FreeBlock> freeBlocks = new ArrayList<>();
@@ -39,6 +42,12 @@ public class Memory {
         public final int fixedSize;
         DataType(int size) { this.fixedSize = size; }
         public boolean hasFixedSize() { return fixedSize > 0; }
+    }
+
+    public enum AllocationStrategy{
+        FIRST_FIT, // в первое попавшееся свободное место
+        BEST_FIT,  // в самое маленькое подходящее свободное место
+        WORST_FIT  // в самое большое подходящее свободное место
     }
 
     private static class StaticAllocation{
@@ -70,6 +79,11 @@ public class Memory {
             this.address = address;
             this.size = size;
         }
+    }
+
+    // Метод для задания стратегии выбора свободных блоков
+    public static void setAllocationStrategy(AllocationStrategy s) {
+        strategy = s;
     }
 
 
@@ -117,20 +131,56 @@ public class Memory {
 
     // => Выделения динамической памяти
     private static int allocateDynamic(int size){
-        for(int i = 0; i < freeBlocks.size(); i++){
-            FreeBlock block = freeBlocks.get(i);
-            if(block.size >= size){
-                int address = block.address;
-                if(block.size == size)
-                    freeBlocks.remove(i);
-                else{
-                    block.address += size;
-                    block.size -= size;
+        FreeBlock selectedBlock = null;
+        int selectedIndex = -1;
+
+        switch (strategy){
+            case FIRST_FIT:
+                for (int i = 0; i < freeBlocks.size(); i++) {
+                    FreeBlock block = freeBlocks.get(i);
+                    if (block.size >= size) {
+                        selectedBlock = block;
+                        selectedIndex = i;
+                        break;
+                    }
                 }
-                return address;
-            }
+                break;
+            case BEST_FIT:
+                for (int i = 0; i < freeBlocks.size(); i++) {
+                    FreeBlock block = freeBlocks.get(i);
+                    if (block.size >= size) {
+                        if (selectedBlock == null || block.size < selectedBlock.size) {
+                            selectedBlock = block;
+                            selectedIndex = i;
+                        }
+                    }
+                }
+                break;
+            case WORST_FIT:
+                for(int i = 0; i < freeBlocks.size(); i++){
+                    FreeBlock block = freeBlocks.get(i);
+                    if(block.size >= size){
+                        if(selectedBlock == null || block.size > selectedBlock.size){
+                            selectedBlock = block;
+                            selectedIndex = i;
+                        }
+                    }
+                }
+                break;
         }
-        throw new RuntimeException("Out of dynamic memory!");
+
+        if(selectedBlock == null)
+            throw new RuntimeException("Out of memory exception: динамическая память заполнена!");
+
+
+        int address = selectedBlock.address;
+        if (selectedBlock.size == size) {
+            freeBlocks.remove(selectedIndex);
+        } else {
+            selectedBlock.address += size;
+            selectedBlock.size -= size;
+        } // откусываем кусок от блока и передвигаем адрес его начала
+        return address;
     }
 
     private static void freeDynamic(int address, int size){
@@ -150,6 +200,7 @@ public class Memory {
             }
         }
     }
+
 
     // => Массивы
     public static int allocateArray(DataType elementType, int size){
@@ -343,6 +394,74 @@ public class Memory {
         System.out.println("=== Free Blocks ===");
         for (FreeBlock b : freeBlocks) {
             System.out.printf("Addr: 0x%04X, Size: %d%n", b.address, b.size);
+        }
+    }
+
+
+    public static void free(int pointer) {
+        int address = staticMemory.getInt(pointer);
+        DynamicAllocation allocation = dynamicAllocations.get(address);
+
+        if (allocation != null) {
+            freeDynamic(allocation.address, allocation.size);
+            dynamicAllocations.remove(allocation.address);
+            staticMemory.putInt(pointer, 0);
+            return;
+        }
+
+        throw new RuntimeException("Ошибка очистки памяти: указатель 0x" + Integer.toHexString(pointer) +
+                " не ссылается на активный блок (адрес данных: 0x" + Integer.toHexString(address) + ")");
+    }
+
+    public static MemoryStats getMemoryStats() {
+        int usedDynamic = 0, freeDynamic = 0, fragments = freeBlocks.size();
+        int largestFree = 0;
+
+        for (FreeBlock block : freeBlocks) {
+            freeDynamic += block.size;
+            if (block.size > largestFree) largestFree = block.size;
+        }
+        usedDynamic = DYNAMIC_SIZE - freeDynamic;
+
+        return new MemoryStats(
+                STATIC_SIZE, staticNextAddress,
+                DYNAMIC_SIZE, usedDynamic, freeDynamic,
+                fragments, largestFree
+        );
+    }
+
+    public static class MemoryStats {
+        public final int staticTotal, staticUsed;
+        public final int dynamicTotal, dynamicUsed, dynamicFree;
+        public final int freeBlockCount, largestFreeBlock;
+
+        public MemoryStats(int stTotal, int stUsed, int dynTotal, int dynUsed, int dynFree, int fragCount, int largestFree) {
+            this.staticTotal = stTotal; this.staticUsed = stUsed;
+            this.dynamicTotal = dynTotal; this.dynamicUsed = dynUsed; this.dynamicFree = dynFree;
+            this.freeBlockCount = fragCount; this.largestFreeBlock = largestFree;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Static: %d/%d used | Dynamic: %d/%d used, %d free blocks, largest: %d",
+                    staticUsed, staticTotal, dynamicUsed, dynamicTotal, freeBlockCount, largestFreeBlock);
+        }
+    }
+
+    public static void testMemoryManager() {
+        setAllocationStrategy(AllocationStrategy.BEST_FIT);
+
+        int[] arrays = new int[10];
+        for (int i = 0; i < 10; i++) {
+            arrays[i] = allocateArray(DataType.INT, 100); // по 400 байт каждый
+            System.out.println("Allocated array " + i + " at ptr: " + arrays[i]);
+        }
+
+        System.out.println("Stats after allocation: " + getMemoryStats());
+
+        for (int i = 0; i < 10; i += 2) {
+            free(arrays[i]);
+            System.out.println("Freed array " + i);
         }
     }
 }

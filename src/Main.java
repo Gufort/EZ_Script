@@ -2,6 +2,7 @@ import Basic.*;
 import ExceptionLogic.CompilerException;
 import Interpret.ConvertASTToInterpretTreeVisitor;
 import Interpret.InterpretTree;
+import Interpret.Memory;
 import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
@@ -320,6 +321,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        tenthTest();
+        Memory.testMemoryManager();
+        Memory.dumpDynamicMemoryStructured();
     }
 }
