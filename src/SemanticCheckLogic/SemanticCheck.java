@@ -54,6 +54,73 @@ public class SemanticCheck extends AutoVisitorUnit {
     }
 
     @Override
+    public void visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception {
+        if (SymbolTable.SymTable.get(node.id.name) != null){
+            CompilerException.semanticError("Переменная с именем " + node.id.name + " уже объявлена", node.id.position);
+            return;
+        }
+
+        SymbolTable.SemanticType elementType;
+        switch (node.elementType){
+            case "int": elementType = SymbolTable.SemanticType.IntType; break;
+            case "double": elementType = SymbolTable.SemanticType.DoubleType; break;
+            case "bool": elementType = SymbolTable.SemanticType.BoolType; break;
+            case "bi": elementType = SymbolTable.SemanticType.BigIntegerType; break;
+            default:
+                CompilerException.semanticError("Неизвестный тип элемента массива: " + node.elementType, node.id.position);
+                return;
+        }
+
+        int size = -1;
+
+        if(node.hasSize()){
+            SymbolTable.SemanticType sizeType = CalcTypes.calcTypeVis(node.size);
+            if(sizeType != SymbolTable.SemanticType.IntType){
+                CompilerException.semanticError("Размер массива должен задаваться целым числом!", node.size.position);
+                return;
+            }
+            if(node.size instanceof ASTNodes.IntNode){
+                size = ((ASTNodes.IntNode)node.size).value;
+                if(size <= 0){
+                    CompilerException.semanticError("Размер массива должен задаваться положительным числом!", node.size.position);
+                    return;
+                }
+            }
+        }
+
+        if(node.hasInitializer()){
+            for(var elem: node.initialElements){
+                var elemType = CalcTypes.calcTypeVis(elem);
+                if(!CalcTypes.assignComparable(elemType, elementType)){
+                    CompilerException.semanticError("Ожидался тип " + elementType + ", получен " + elemType, elem.position);
+                    return;
+                }
+            }
+        }
+
+        if(node.hasSize() && node.hasInitializer() && node.size instanceof ASTNodes.IntNode){
+            int initSize = node.initialElements.size();
+            if(size != initSize){
+                CompilerException.semanticError("Размер массива " + node.id.name + " не соответствует количеству эелементов в нем", node.id.position);
+                return;
+            }
+        }
+
+        SymbolTable.SymbolInfo arrayInfo = new SymbolTable.SymbolInfo(
+                node.id.name,
+                SymbolTable.KindType.ArrayName,
+                elementType,
+                -1,
+                size,
+                node.hasInitializer() ? node.initialElements.size() : 0
+        );
+
+        SymbolTable.SymTable.put(node.id.name, arrayInfo);
+
+        super.visitArrayDeclaration(node);
+    }
+
+    @Override
     public void visitAssign(ASTNodes.AssignNode node) throws Exception {
         node.expr.visitP(this);
 

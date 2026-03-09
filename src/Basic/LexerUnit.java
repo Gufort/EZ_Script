@@ -16,7 +16,7 @@ public class LexerUnit {
         EQUAL, LESS, GREATER, GREATEREQUAL, LESSEQUAL, NOTEQUAL,
         AND, OR, NOT,
         EOF,
-        TRUE, FALSE, IF, ELSE, WHILE, DO, THEN, FOR
+        TRUE, FALSE, IF, ELSE, WHILE, DO, THEN, FOR, NEW
     }
 
     public static  Dictionary<String, TokenType> KeyWords = new Hashtable<String, TokenType>();
@@ -37,6 +37,8 @@ public class LexerUnit {
         KeyWords.put("do", TokenType.DO);
         KeyWords.put("then", TokenType.THEN);
         KeyWords.put("for", TokenType.FOR);
+
+        KeyWords.put("new", TokenType.NEW);
     }
 
     public static TokenType[] ArithmeticOperations  = new TokenType[]{

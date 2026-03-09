@@ -1211,59 +1211,107 @@ public class InterpretTree {
             int arraySize;
             int arrayAddress;
 
+            // Случай 1: new int[10] - массив с указанным размером
             if (size != null) {
                 arraySize = size.evalInt();
+                if (arraySize <= 0) {
+                    throw new RuntimeException("Размер массива должен быть положительным: " + arraySize);
+                }
+
                 arrayAddress = Memory.allocateArray(elementType, arraySize);
 
+                // Если есть инициализатор, копируем элементы (для случаев new int[5] {1,2,3})
                 if (initialElements != null && !initialElements.isEmpty()) {
                     int initSize = Math.min(arraySize, initialElements.size());
                     for (int i = 0; i < initSize; i++) {
-                        int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                         ExprNodeI element = initialElements.get(i);
 
                         switch (elementType) {
                             case INT:
-                                Memory.setInt(elementAddress, element.evalInt());
+                                Memory.setArrayElementInt(arrayAddress, i, element.evalInt());
                                 break;
                             case DOUBLE:
-                                Memory.setDouble(elementAddress, element.evalReal());
+                                Memory.setArrayElementDouble(arrayAddress, i, element.evalReal());
                                 break;
                             case BOOLEAN:
-                                Memory.setBoolean(elementAddress, element.evalBool());
+                                Memory.setArrayElementBoolean(arrayAddress, i, element.evalBool());
                                 break;
                             case BIG_INTEGER:
-                                Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                                Memory.setArrayElementBigInteger(arrayAddress, i, element.evalBigInteger());
                                 break;
+                            default:
+                                throw new RuntimeException("Неподдерживаемый тип элемента: " + elementType);
                         }
                     }
                 }
-            } else if (initialElements != null && !initialElements.isEmpty()) {
+            }
+            // Случай 2: new int[] {1,2,3} или {1,2,3} - массив с инициализатором
+            else if (initialElements != null && !initialElements.isEmpty()) {
                 arraySize = initialElements.size();
                 arrayAddress = Memory.allocateArray(elementType, arraySize);
 
                 for (int i = 0; i < arraySize; i++) {
-                    int elementAddress = Memory.getArrayElementAddress(arrayAddress, i, elementType);
                     ExprNodeI element = initialElements.get(i);
 
                     switch (elementType) {
                         case INT:
-                            Memory.setInt(elementAddress, element.evalInt());
+                            // Проверяем, что элемент действительно дает int
+                            try {
+                                Memory.setArrayElementInt(arrayAddress, i, element.evalInt());
+                            } catch (Exception e) {
+                                throw new RuntimeException("Ожидалось целое число для элемента массива int[" + i + "]", e);
+                            }
                             break;
+
                         case DOUBLE:
-                            Memory.setDouble(elementAddress, element.evalReal());
+                            // Для double можно принимать как double, так и int
+                            try {
+                                Memory.setArrayElementDouble(arrayAddress, i, element.evalReal());
+                            } catch (Exception e) {
+                                try {
+                                    // Пробуем преобразовать int в double
+                                    int intVal = element.evalInt();
+                                    Memory.setArrayElementDouble(arrayAddress, i, (double) intVal);
+                                } catch (Exception e2) {
+                                    throw new RuntimeException("Ожидалось число с плавающей точкой для элемента массива double[" + i + "]", e);
+                                }
+                            }
                             break;
+
                         case BOOLEAN:
-                            Memory.setBoolean(elementAddress, element.evalBool());
+                            try {
+                                Memory.setArrayElementBoolean(arrayAddress, i, element.evalBool());
+                            } catch (Exception e) {
+                                throw new RuntimeException("Ожидалось логическое значение для элемента массива bool[" + i + "]", e);
+                            }
                             break;
+
                         case BIG_INTEGER:
-                            Memory.setBigInteger(elementAddress, element.evalBigInteger());
+                            // Для BigInteger можно принимать как BigInteger, так и int
+                            try {
+                                Memory.setArrayElementBigInteger(arrayAddress, i, element.evalBigInteger());
+                            } catch (Exception e) {
+                                try {
+                                    // Пробуем преобразовать int в BigInteger
+                                    int intVal = element.evalInt();
+                                    Memory.setArrayElementBigInteger(arrayAddress, i, BigInteger.valueOf(intVal));
+                                } catch (Exception e2) {
+                                    throw new RuntimeException("Ожидалось большое целое для элемента массива bi[" + i + "]", e);
+                                }
+                            }
                             break;
+
+                        default:
+                            throw new RuntimeException("Неподдерживаемый тип элемента: " + elementType);
                     }
                 }
-            } else {
-                throw new RuntimeException("Array declaration must have either size or initializer");
+            }
+            // Случай 3: new int[0] или просто объявление без инициализации
+            else {
+                throw new RuntimeException("Объявление массива должно содержать либо размер, либо инициализатор");
             }
 
+            // Сохраняем адрес массива в переменную
             Memory.setInt(variableAddress, arrayAddress);
         }
     }

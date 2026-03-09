@@ -37,6 +37,13 @@ public class Parser extends ParserBase {
     /// { statlist }
     public ASTNodes.StatementNode statement() throws Exception {
         var pos = currentToken().position;
+        if (at(LexerUnit.TokenType.ID) && peekNextTokenType() == LexerUnit.TokenType.LEFT_BRACKET) {
+            if (current + 2 < tokens.size() &&
+                    tokens.get(current + 2).type == LexerUnit.TokenType.RIGHT_BRACKET) {
+
+                return arrayDeclaration();
+            }
+        }
         if(at(LexerUnit.TokenType.IF)){
             nextLexem();
             var cond = expr();
@@ -166,43 +173,73 @@ public class Parser extends ParserBase {
 
     public ASTNodes.ArrayLiteralNode arrayLiteral() throws Exception {
         var pos = currentToken().position;
-        requires(LexerUnit.TokenType.LEFT_BRACKET);
+        requires(LexerUnit.TokenType.LEFT_BRACE);
         var elements = new ArrayList<ASTNodes.ExprNode>();
 
-        if(!at(LexerUnit.TokenType.RIGHT_BRACKET)){
+        if (!at(LexerUnit.TokenType.RIGHT_BRACE)) {
             elements.add(expr());
-            while(at(LexerUnit.TokenType.COMMA)){
+            while (at(LexerUnit.TokenType.COMMA)) {
                 nextLexem();
                 elements.add(expr());
             }
         }
-
-        requires(LexerUnit.TokenType.RIGHT_BRACKET);
+        requires(LexerUnit.TokenType.RIGHT_BRACE);
         return new ASTNodes.ArrayLiteralNode(elements, pos);
     }
 
-
-    /// ArrayDeclaration := 'array' Id ('[' Expr ']')? ('=' ArrayLiteral)?
     public ASTNodes.ArrayDeclarationNode arrayDeclaration() throws Exception {
         var pos = currentToken().position;
+
+        var typeToken = requires(LexerUnit.TokenType.ID);
+        String elementType = typeToken.value.toString();
+
+        requires(LexerUnit.TokenType.LEFT_BRACKET);
+        requires(LexerUnit.TokenType.RIGHT_BRACKET);
+
         var id = ident();
+
         ASTNodes.ExprNode size = null;
-        var initialElements = new ArrayList<ASTNodes.ExprNode>();
+        ArrayList<ASTNodes.ExprNode> initialElements = new ArrayList<>();
+        boolean hasNewKeyword = false;
 
-        // Обработка размера массива
-        if(at(LexerUnit.TokenType.LEFT_BRACKET)){
-            nextLexem();
-            size = expr();
-            requires(LexerUnit.TokenType.RIGHT_BRACKET);
+        if (at(LexerUnit.TokenType.ASSIGN)) {
+            nextLexem(); // пропускаем '='
+
+            if (at(LexerUnit.TokenType.NEW)) {
+                hasNewKeyword = true;
+                nextLexem();
+
+                var newTypeToken = requires(LexerUnit.TokenType.ID);
+
+                if (at(LexerUnit.TokenType.LEFT_BRACKET)) {
+                    nextLexem();
+                    if (at(LexerUnit.TokenType.RIGHT_BRACKET)) {
+                        nextLexem();
+                        var literal = arrayLiteral();
+                        initialElements = literal.elements;
+                    } else {
+                        size = expr();
+                        requires(LexerUnit.TokenType.RIGHT_BRACKET);
+                    }
+                }
+            } else if (at(LexerUnit.TokenType.LEFT_BRACE)) {
+                // shorthand: {...} — но у вас литералы через [...], проверьте грамматику
+                var literal = arrayLiteral();
+                initialElements = literal.elements;
+            } else {
+                CompilerException.syntaxError("Ожидается 'new' или '{' после '='", currentToken().position);
+            }
         }
 
-        // Обработка инициализации arr[3] = [1, 2, 3]
-        if(at(LexerUnit.TokenType.ASSIGN)){
-            nextLexem();
-            initialElements = arrayLiteral().elements;
+        if (hasNewKeyword && size != null) {
+            return ASTNodes.ArrayDeclarationNode.constructorWithSize(id, elementType, size, pos);
+        } else if (hasNewKeyword && !initialElements.isEmpty()) {
+            return ASTNodes.ArrayDeclarationNode.constructorWithInitializer(id, elementType, initialElements, pos);
+        } else if (!initialElements.isEmpty()) {
+            return ASTNodes.ArrayDeclarationNode.constructorShort(id, elementType, initialElements, pos);
         }
 
-        return new  ASTNodes.ArrayDeclarationNode(id, size, initialElements, pos);
+        return ASTNodes.ArrayDeclarationNode.constructorWithSize(id, elementType, size, pos);
     }
 
     public ASTNodes.ExprNode expr() throws Exception {

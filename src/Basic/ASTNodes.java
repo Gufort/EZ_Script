@@ -348,17 +348,44 @@ public abstract class ASTNodes {
     }
 
     // Объявление массива
-    public static class ArrayDeclarationNode extends ExprNode{
+    public static class ArrayDeclarationNode extends StatementNode{
         public IdNode id;
         public ExprNode size;
+        public String elementType; // int, double, bool, bi
         public ArrayList<ExprNode> initialElements = new ArrayList<ExprNode>();
+        public boolean hasNewKeyword;
 
-        public ArrayDeclarationNode(IdNode id, ExprNode size,  ArrayList<ExprNode> initialElements, Position position) {
+        private ArrayDeclarationNode(IdNode id, String elementType, ExprNode size, ArrayList<ExprNode> initialElements, boolean hasNewKeyword, Position position) {
             this.id = id;
+            this.elementType = elementType;
             this.size = size;
             this.initialElements = initialElements;
+            this.hasNewKeyword = hasNewKeyword;
             this.position = position;
         }
+
+        // Далее описываем фабричные методы для трех возможным ситуаций
+        /// new int[10]
+        public static ArrayDeclarationNode constructorWithSize(IdNode id, String elementType, ExprNode size, Position position){
+            return new ArrayDeclarationNode(id, elementType, size, null, true, position);
+        }
+
+        /// new int[] {...}
+        public static ArrayDeclarationNode constructorWithInitializer(IdNode id, String elementType, ArrayList<ExprNode> elements, Position position){
+            return new ArrayDeclarationNode(id, elementType, null, elements, true, position);
+        }
+
+        ///  сокращенная форма {...}
+        public static ArrayDeclarationNode constructorShort(IdNode id, String elementType, ArrayList<ExprNode> elements, Position position){
+            return new ArrayDeclarationNode(id, elementType, null, elements, false, position);
+        }
+
+        // Вспомогательные методы
+        public boolean hasSize() { return size != null; }
+        public boolean hasInitializer() { return initialElements != null && !initialElements.isEmpty(); }
+        public boolean isShorthand() { return !hasNewKeyword && hasInitializer(); }
+        public boolean isWithNewAndSize() { return hasNewKeyword && hasSize() && !hasInitializer(); }
+        public boolean isWithNewAndInitializer() { return hasNewKeyword && hasInitializer() && !hasSize(); }
 
         @Override
         public <T> T visit(IVisitor<T> v) throws Exception { return v.visitArrayDeclaration(this); }
@@ -367,11 +394,31 @@ public abstract class ASTNodes {
 
         @Override
         public String toString() {
-            if (size != null) return "array " + id + "[" + size + "]";
-            else if (initialElements != null) return "array " + id + " = " + initialElements;
-            else return "array " + id;
+            if (isWithNewAndSize()) {
+                return elementType + "[] " + id + " = new " + elementType + "[" + size + "]";
+            } else if (isWithNewAndInitializer()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(elementType).append("[] ").append(id).append(" = new ").append(elementType).append("[] {");
+                for (int i = 0; i < initialElements.size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(initialElements.get(i));
+                }
+                sb.append("}");
+                return sb.toString();
+            } else if (isShorthand()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(elementType).append("[] ").append(id).append(" = {");
+                for (int i = 0; i < initialElements.size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(initialElements.get(i));
+                }
+                sb.append("}");
+                return sb.toString();
+            }
+            return elementType + "[] " + id;
         }
     }
+
 
 
     public static class AssignNode extends StatementNode{

@@ -94,6 +94,11 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(id.name);
         if (sym == null) return null;
 
+        // Для массивов возвращаем IdNodeI с типом INT, так как адрес массива - это целое число
+        if (sym.kindType == SymbolTable.KindType.ArrayName) {
+            return new InterpretTree.IdNodeI(sym.address, Memory.DataType.INT);
+        }
+
         // Преобразуем SemanticType в Memory.DataType
         Memory.DataType memType;
         switch (sym.semanticType) {
@@ -124,9 +129,10 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
         // Определяем тип элементов массива
         Memory.DataType elementType = Memory.DataType.INT; // по умолчанию int
         if (node.array instanceof ASTNodes.IdNode) {
-            SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(((ASTNodes.IdNode) node.array).name);
-            if (sym != null) {
-                switch (sym.semanticType) {
+            String arrayName = ((ASTNodes.IdNode) node.array).name;
+            SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(arrayName);
+            if (sym != null && sym.kindType == SymbolTable.KindType.ArrayName) {
+                switch (sym.elementType) {
                     case DoubleType:
                         elementType = Memory.DataType.DOUBLE;
                         break;
@@ -136,6 +142,8 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case BigIntegerType:
                         elementType = Memory.DataType.BIG_INTEGER;
                         break;
+                    default:
+                        elementType = Memory.DataType.INT;
                 }
             }
         }
@@ -177,38 +185,37 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     @Override
     public InterpretTree.NodeI visitArrayDeclaration(ASTNodes.ArrayDeclarationNode node) throws Exception{
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(node.id.name);
-        if (sym == null) return null;
+        if(sym == null)
+            throw new Exception("Переменная " + node.id.name + " не найдена в таблице символов");
 
         InterpretTree.ExprNodeI size = null;
-        if (node.size != null) {
+        if(node.hasSize())
             size = (InterpretTree.ExprNodeI) node.size.visit(this);
-        }
 
-        ArrayList<InterpretTree.ExprNodeI> initialElements = null;
-        if (node.initialElements != null && !node.initialElements.isEmpty()) {
-            initialElements = new ArrayList<>();
-            for (ASTNodes.ExprNode element : node.initialElements) {
-                initialElements.add((InterpretTree.ExprNodeI) element.visit(this));
-            }
+        ArrayList<InterpretTree.ExprNodeI> initialElem = null;
+        if(node.hasInitializer()){
+            initialElem = new ArrayList<>();
+            for(var curr: node.initialElements)
+                initialElem.add((InterpretTree.ExprNodeI) curr.visit(this));
         }
-
 
         Memory.DataType elementType;
-        switch (sym.semanticType) {
-            case DoubleType:
-                elementType = Memory.DataType.DOUBLE;
-                break;
-            case BoolType:
-                elementType = Memory.DataType.BOOLEAN;
-                break;
-            case BigIntegerType:
-                elementType = Memory.DataType.BIG_INTEGER;
-                break;
-            default:
-                elementType = Memory.DataType.INT;
+        switch(node.elementType){
+            case "int": elementType = Memory.DataType.INT; break;
+            case "double": elementType = Memory.DataType.DOUBLE; break;
+            case "bool": elementType = Memory.DataType.BOOLEAN; break;
+            case "bi": elementType = Memory.DataType.BIG_INTEGER; break;
+            default: throw new Exception("Неподдерживаемый тип элемента массива: " + sym.elementType);
         }
 
-        return new InterpretTree.ArrayDeclarationNodeI(sym.address, size, initialElements, elementType);
+        int varAddress;
+        if(sym.address == -1){
+            varAddress = Memory.allocateInt(0);
+            sym.address = varAddress;
+        }
+        else varAddress = sym.address;
+
+        return new InterpretTree.ArrayDeclarationNodeI(varAddress, size, initialElem, elementType);
     }
 
     @Override
@@ -219,9 +226,10 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
 
         Memory.DataType elementType = Memory.DataType.INT; // по умолчанию int
         if (node.array instanceof ASTNodes.IdNode) {
-            SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(((ASTNodes.IdNode) node.array).name);
-            if (sym != null) {
-                switch (sym.semanticType) {
+            String arrayName = ((ASTNodes.IdNode) node.array).name;
+            SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(arrayName);
+            if (sym != null && sym.kindType == SymbolTable.KindType.ArrayName) {
+                switch (sym.elementType) {
                     case DoubleType:
                         elementType = Memory.DataType.DOUBLE;
                         break;
@@ -231,10 +239,11 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case BigIntegerType:
                         elementType = Memory.DataType.BIG_INTEGER;
                         break;
+                    default:
+                        elementType = Memory.DataType.INT;
                 }
             }
         }
-
 
         switch (elementType) {
             case INT:
@@ -252,6 +261,7 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
 
     @Override
     public InterpretTree.NodeI visitArrayAssignOperation(ASTNodes.ArrayAssignOperationNode node) throws Exception {
+        // Пока не реализовано
         return null;
     }
 
@@ -348,12 +358,12 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case DoubleType:
                         if (ass.expr instanceof ASTNodes.IntNode) {
                             ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                            return new InterpretTree.AssignMinusIntCNodeI(sym.address, intNode.value);
+                            return new InterpretTree.AssignMinusDoubleCNodeI(sym.address, (double) intNode.value);
                         } else if (ass.expr instanceof ASTNodes.DoubleNode) {
                             ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
-                            return new InterpretTree.AssignMinusIntCNodeI(sym.address, (int) doubleNode.value);
+                            return new InterpretTree.AssignMinusDoubleCNodeI(sym.address, doubleNode.value);
                         } else {
-                            return new InterpretTree.AssignMinusIntNodeI(
+                            return new InterpretTree.AssignMinusDoubleNodeI(
                                     sym.address,
                                     (InterpretTree.ExprNodeI) ass.expr.visit(this)
                             );
@@ -389,12 +399,12 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
                     case DoubleType:
                         if (ass.expr instanceof ASTNodes.IntNode) {
                             ASTNodes.IntNode intNode = (ASTNodes.IntNode) ass.expr;
-                            return new InterpretTree.AssignMultIntCNodeI(sym.address, intNode.value);
+                            return new InterpretTree.AssignMultDoubleCNodeI(sym.address, (double) intNode.value);
                         } else if (ass.expr instanceof ASTNodes.DoubleNode) {
                             ASTNodes.DoubleNode doubleNode = (ASTNodes.DoubleNode) ass.expr;
-                            return new InterpretTree.AssignMultIntCNodeI(sym.address, (int) doubleNode.value);
+                            return new InterpretTree.AssignMultDoubleCNodeI(sym.address, doubleNode.value);
                         } else {
-                            return new InterpretTree.AssignMultIntNodeI(
+                            return new InterpretTree.AssignMultDoubleNodeI(
                                     sym.address,
                                     (InterpretTree.ExprNodeI) ass.expr.visit(this)
                             );
@@ -451,6 +461,7 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
 
     @Override
     public InterpretTree.NodeI visitFuncCall(ASTNodes.FuncCallNode f) throws Exception {
+        // Для встроенных функций можно добавить реализацию
         return null;
     }
 

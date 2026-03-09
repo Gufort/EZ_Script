@@ -261,7 +261,7 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception{
-        String text = "arr = [1bi,2bi,3bi,4bi]; print(arr[2])";
+        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1])";
 
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -286,7 +286,7 @@ public class Main {
     }
 
     public static void eleventhTest() throws Exception{
-        String text = "arr = [1,2,3,4]; print(arr[2])";
+        String text = "int[] arr = new int[] {1,2,3,5656,4}; int[] arr = {123,2}; print(arr[1])";
 
         var lex = new LexerUnit.Lexer(text);
         try{
@@ -320,6 +320,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        seventhTest();
+        tenthTest();
     }
 }
