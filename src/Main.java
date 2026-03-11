@@ -322,6 +322,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         Memory.testMemoryManager();
-        Memory.dumpDynamicMemoryStructured();
+        Memory.dumpDynamicMemorySimple();
     }
 }

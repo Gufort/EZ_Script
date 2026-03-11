@@ -451,17 +451,63 @@ public class Memory {
     public static void testMemoryManager() {
         setAllocationStrategy(AllocationStrategy.BEST_FIT);
 
-        int[] arrays = new int[10];
-        for (int i = 0; i < 10; i++) {
-            arrays[i] = allocateArray(DataType.INT, 100); // по 400 байт каждый
-            System.out.println("Allocated array " + i + " at ptr: " + arrays[i]);
+        Random random = new Random();
+        int freeSize = 8192;
+        ArrayList<Integer> arrays = new ArrayList<>();
+        for(int i = 0; i < 200; i += 1) {
+            int size = random.nextInt(1, 100);
+            if(freeSize - size <= 0) break;
+            freeSize -= size;
+            int ptr = Memory.allocateArray(Memory.DataType.INT, size);
+            arrays.add(ptr);
+
+            for(int j = 0; j < size; j++) {
+                Memory.setArrayElementInt(ptr, j, j * 10);
+            }
         }
 
-        System.out.println("Stats after allocation: " + getMemoryStats());
+    }
 
-        for (int i = 0; i < 10; i += 2) {
-            free(arrays[i]);
-            System.out.println("Freed array " + i);
+
+    public static void dumpDynamicMemorySimple() {
+        System.out.println("\n=== Динамическая память ===");
+        System.out.printf("%-10s | %-8s | %-10s | %s%n", "Начало", "Размер", "Статус", "Тип/Инфо");
+        System.out.println("-----------|----------|------------|------------|");
+
+        List<MemBlock> allBlocks = new ArrayList<>();
+
+        for (DynamicAllocation a : dynamicAllocations.values())
+            allBlocks.add(new MemBlock(a.address, a.size, true, a.type.name()));
+
+        for (FreeBlock b : freeBlocks)
+            allBlocks.add(new MemBlock(b.address, b.size, false, "FREE"));
+
+
+        allBlocks.sort(Comparator.comparingInt(b -> b.start));
+
+        for (MemBlock b : allBlocks) {
+            String status = b.occupied ? "[USED]" : "[FREE]";
+            int barLen = Math.max(1, b.size / 1000);
+            String bar = b.occupied ? "█".repeat(barLen) : "·".repeat(barLen);
+
+            System.out.printf("0x%04X     | %-8d | %-10s | %s %s%n",
+                    b.start, b.size, status, bar, b.info);
+        }
+
+        System.out.println("-----------|----------|------------|------------|");
+    }
+
+    private static class MemBlock {
+        int start;
+        int size;
+        boolean occupied;
+        String info;
+
+        MemBlock(int s, int sz, boolean occ, String inf) {
+            this.start = s;
+            this.size = sz;
+            this.occupied = occ;
+            this.info = inf;
         }
     }
 }
