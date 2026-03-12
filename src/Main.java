@@ -321,7 +321,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        Memory.testMemoryManager();
-        Memory.dumpDynamicMemorySimple();
+        Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
     }
 }

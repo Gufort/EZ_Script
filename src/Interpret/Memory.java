@@ -413,49 +413,33 @@ public class Memory {
                 " не ссылается на активный блок (адрес данных: 0x" + Integer.toHexString(address) + ")");
     }
 
-    public static MemoryStats getMemoryStats() {
-        int usedDynamic = 0, freeDynamic = 0, fragments = freeBlocks.size();
-        int largestFree = 0;
-
-        for (FreeBlock block : freeBlocks) {
-            freeDynamic += block.size;
-            if (block.size > largestFree) largestFree = block.size;
-        }
-        usedDynamic = DYNAMIC_SIZE - freeDynamic;
-
-        return new MemoryStats(
-                STATIC_SIZE, staticNextAddress,
-                DYNAMIC_SIZE, usedDynamic, freeDynamic,
-                fragments, largestFree
-        );
-    }
-
-    public static class MemoryStats {
-        public final int staticTotal, staticUsed;
-        public final int dynamicTotal, dynamicUsed, dynamicFree;
-        public final int freeBlockCount, largestFreeBlock;
-
-        public MemoryStats(int stTotal, int stUsed, int dynTotal, int dynUsed, int dynFree, int fragCount, int largestFree) {
-            this.staticTotal = stTotal; this.staticUsed = stUsed;
-            this.dynamicTotal = dynTotal; this.dynamicUsed = dynUsed; this.dynamicFree = dynFree;
-            this.freeBlockCount = fragCount; this.largestFreeBlock = largestFree;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("Static: %d/%d used | Dynamic: %d/%d used, %d free blocks, largest: %d",
-                    staticUsed, staticTotal, dynamicUsed, dynamicTotal, freeBlockCount, largestFreeBlock);
-        }
-    }
-
-    public static void testMemoryManager() {
+    public static void testMemoryManager(AllocationStrategy s) {
         setAllocationStrategy(AllocationStrategy.BEST_FIT);
+        setAllocationStrategy(s);
 
+        var arrays = createArrayForTests(200);
+        System.out.println("\n\n===> Вывод памяти после создания кучи массивов небольших размеров <===");
+        dumpDynamicMemorySimple();
+
+        for(int i = 0; i < arrays.size(); i += 2){
+            free(arrays.get(i));
+        }
+
+        System.out.println("\n\n===> Вывод памяти после удаления каждого блока с четным номером <===");
+        dumpDynamicMemorySimple();
+
+        arrays = createArrayForTests(20);
+        System.out.println("\n\n===> Вывод памяти после создания кучи массивов небольших размеров <===");
+        dumpDynamicMemorySimple();
+    }
+
+    public static ArrayList<Integer> createArrayForTests(int arrSize){
         Random random = new Random();
         int freeSize = 8192;
         ArrayList<Integer> arrays = new ArrayList<>();
-        for(int i = 0; i < 200; i += 1) {
+        for(int i = 0; i < arrSize; i += 1) {
             int size = random.nextInt(1, 100);
+            // if(freeBlocks.size() == 1 && freeBlocks.getLast().size() < size)
             if(freeSize - size <= 0) break;
             freeSize -= size;
             int ptr = Memory.allocateArray(Memory.DataType.INT, size);
@@ -464,13 +448,16 @@ public class Memory {
             for(int j = 0; j < size; j++) {
                 Memory.setArrayElementInt(ptr, j, j * 10);
             }
+            System.out.printf("Выбрано место: 0x%X, размер массива: %d%n",
+                    staticMemory.getInt(ptr), size);
         }
 
+        return arrays;
     }
 
 
     public static void dumpDynamicMemorySimple() {
-        System.out.println("\n=== Динамическая память ===");
+        System.out.println("=== Динамическая память ===");
         System.out.printf("%-10s | %-8s | %-10s | %s%n", "Начало", "Размер", "Статус", "Тип/Инфо");
         System.out.println("-----------|----------|------------|------------|");
 
