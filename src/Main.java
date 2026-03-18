@@ -264,9 +264,18 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception {
-        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1]); free(arr); print(arr[1])";
+        StringBuilder text = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader("tests.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null)
+                text.append(line);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        var lex = new LexerUnit.Lexer(text);
+        text.append("dump()");
+
+        var lex = new LexerUnit.Lexer(text.toString());
         try {
             var par = new Parser(lex);
             var progr = par.mainProgram();
@@ -332,17 +341,18 @@ public class Main {
 
             int sizeOfMemory = 8192;
             int index = 1;
-            while (sizeOfMemory > 0) {
-                int size = random.nextInt(20) + 6;
+            while (true) {
+                int size = random.nextInt(30) + 15;
+                if(sizeOfMemory - size < 0) break;
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < size; i++) {
                     if (i > 0) sb.append(", ");
                     sb.append(random.nextInt(1000) + 1);
                 }
-                bw.write("int[] arr" + index + " = {" + sb + "};");
-                bw.newLine();
                 index++;
                 sizeOfMemory -= size;
+                bw.write("int[] arr" + index + " = {" + sb + "};");
+                bw.newLine();
             }
         } catch (IOException e){
             e.printStackTrace();
@@ -351,7 +361,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         //Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
-        //generateArrays("tests.txt");
+        generateArrays("tests.txt");
         tenthTest();
     }
 }
