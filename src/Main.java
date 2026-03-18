@@ -261,27 +261,30 @@ public class Main {
         }
     }
 
-    public static void tenthTest() throws Exception{
-        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1])";
+    public static void tenthTest() throws Exception {
+        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1]); dump()";
 
         var lex = new LexerUnit.Lexer(text);
-        try{
+        try {
             var par = new Parser(lex);
             var progr = par.mainProgram();
             progr.visitP(new SemanticCheck());
-            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI)progr.visit(new ConvertASTToInterpretTreeVisitor());
-            var pp = new PrettyPrinterSecond();
+            InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI) progr.visit(new ConvertASTToInterpretTreeVisitor());
+
+            System.out.println("=== ВЫПОЛНЕНИЕ ПРОГРАММЫ ===");
             var start = System.nanoTime();
             rooti.execute();
             var end = System.nanoTime();
+
+            System.out.println("\n=== Код ===");
+            var pp = new PrettyPrinterSecond();
             System.out.println(progr.visit(pp));
+
             long duration = (end - start) / 1_000_000;
-            System.out.println("Время выполнения: " + duration + " мс");
-        }
-        catch (CompilerException.LexerException e) {
+            System.out.println("\nВремя выполнения: " + duration + " мс");
+        } catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
-        }
-        catch (CompilerException.SyntaxException e) {
+        } catch (CompilerException.SyntaxException e) {
             CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
         }
     }
@@ -321,6 +324,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
+        //Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
+        tenthTest();
     }
 }

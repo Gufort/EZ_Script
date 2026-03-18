@@ -137,8 +137,19 @@ public class Parser extends ParserBase {
         }
         else if(at(LexerUnit.TokenType.LEFT_PAREN)){
             nextLexem();
-            var expr = exprList();
-            requires(LexerUnit.TokenType.RIGHT_PAREN);
+
+            ASTNodes.ExprListNode expr;
+            // Проверяем, есть ли параметры
+            if (at(LexerUnit.TokenType.RIGHT_PAREN)) {
+                // Пустой список параметров
+                expr = new ASTNodes.ExprListNode();
+                nextLexem(); // пропускаем ')'
+            } else {
+                // Есть параметры
+                expr = exprList();
+                requires(LexerUnit.TokenType.RIGHT_PAREN);
+            }
+
             return new ASTNodes.ProcCallNode(id, expr, pos);
         }
         else expectedError(LexerUnit.TokenType.ASSIGN, LexerUnit.TokenType.LEFT_PAREN);

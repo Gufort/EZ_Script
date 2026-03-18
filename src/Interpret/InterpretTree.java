@@ -1854,6 +1854,9 @@ public class InterpretTree {
                 }
                 System.out.println();
             }
+            if("dump".equals(name) && (pars == null || pars.lst.isEmpty())) {
+                Memory.dumpDynamicMemorySimple();
+            }
         }
     }
 }
