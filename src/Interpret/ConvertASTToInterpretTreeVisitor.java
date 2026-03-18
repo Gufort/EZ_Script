@@ -93,32 +93,20 @@ public class ConvertASTToInterpretTreeVisitor implements ASTNodes.IVisitor<Inter
     public InterpretTree.NodeI visitId(ASTNodes.IdNode id) throws Exception {
         SymbolTable.SymbolInfo sym = SymbolTable.SymTable.get(id.name);
         if (sym == null) return null;
+        if (sym.kindType == SymbolTable.KindType.ArrayName)
+            return new InterpretTree.IdNodeI(sym.address, Memory.DataType.INT, id.name);
 
-        // Для массивов возвращаем IdNodeI с типом INT, так как адрес массива - это целое число
-        if (sym.kindType == SymbolTable.KindType.ArrayName) {
-            return new InterpretTree.IdNodeI(sym.address, Memory.DataType.INT);
-        }
 
-        // Преобразуем SemanticType в Memory.DataType
         Memory.DataType memType;
         switch (sym.semanticType) {
-            case IntType:
-                memType = Memory.DataType.INT;
-                break;
-            case DoubleType:
-                memType = Memory.DataType.DOUBLE;
-                break;
-            case BoolType:
-                memType = Memory.DataType.BOOLEAN;
-                break;
-            case BigIntegerType:
-                memType = Memory.DataType.BIG_INTEGER;
-                break;
-            default:
-                return null;
+            case IntType: memType = Memory.DataType.INT; break;
+            case DoubleType: memType = Memory.DataType.DOUBLE; break;
+            case BoolType: memType = Memory.DataType.BOOLEAN; break;
+            case BigIntegerType: memType = Memory.DataType.BIG_INTEGER; break;
+            default: return null;
         }
 
-        return new InterpretTree.IdNodeI(sym.address, memType);
+        return new InterpretTree.IdNodeI(sym.address, memType, id.name);
     }
 
     @Override

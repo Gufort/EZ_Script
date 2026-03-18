@@ -7,7 +7,9 @@ import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
 
+import java.io.*;
 import java.math.BigInteger;
+import java.util.Random;
 import java.util.logging.Logger;
 import VirtualMachine.*;
 import com.sun.tools.attach.VirtualMachine;
@@ -262,7 +264,7 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception {
-        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1]); dump()";
+        String text = "int[] arr = new int[] {1,2,3,5656,4}; print(arr[1]); free(arr); print(arr[1])";
 
         var lex = new LexerUnit.Lexer(text);
         try {
@@ -323,8 +325,33 @@ public class Main {
         return sum;
     }
 
+    public static void generateArrays(String path){
+        try (FileWriter fw = new FileWriter(path, false);
+            BufferedWriter bw = new BufferedWriter(fw)) {
+            Random random = new Random();
+
+            int sizeOfMemory = 8192;
+            int index = 1;
+            while (sizeOfMemory > 0) {
+                int size = random.nextInt(20) + 6;
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < size; i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(random.nextInt(1000) + 1);
+                }
+                bw.write("int[] arr" + index + " = {" + sb + "};");
+                bw.newLine();
+                index++;
+                sizeOfMemory -= size;
+            }
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         //Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
+        //generateArrays("tests.txt");
         tenthTest();
     }
 }

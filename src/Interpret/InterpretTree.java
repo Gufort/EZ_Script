@@ -1,5 +1,7 @@
 package Interpret;
 
+import SemanticCheckLogic.SymbolTable;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,10 +60,17 @@ public class InterpretTree {
     public static class IdNodeI extends ExprNodeI {
         public int address;
         public Memory.DataType type;
+        public String name = null;
 
         public IdNodeI(int address, Memory.DataType type) {
             this.address = address;
             this.type = type;
+        }
+
+        public IdNodeI(int address, Memory.DataType type, String name) {
+            this.address = address;
+            this.type = type;
+            this.name = name;
         }
 
         @Override public int evalInt() {
@@ -1856,6 +1865,23 @@ public class InterpretTree {
             }
             if("dump".equals(name) && (pars == null || pars.lst.isEmpty())) {
                 Memory.dumpDynamicMemorySimple();
+            }
+            if("free".equals(name) && pars != null && pars.lst.size() == 1){
+                ExprNodeI arg = pars.lst.get(0);
+                if (arg instanceof InterpretTree.IdNodeI) {
+                    InterpretTree.IdNodeI idNode = (InterpretTree.IdNodeI) arg;
+                    if (idNode.name != null) {
+                        try {
+                            int pointerAddress = Memory.getInt(idNode.address);
+
+                            Memory.free(pointerAddress);
+
+                            SymbolTable.SymTable.remove(idNode.name);
+                        } catch (Exception e) {
+                            throw new RuntimeException("Ошибка при освобождении памяти массива '" + idNode.name + "': " + e.getMessage());
+                        }
+                    }
+                }
             }
         }
     }
