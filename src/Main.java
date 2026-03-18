@@ -340,7 +340,7 @@ public class Main {
             Random random = new Random();
 
             int sizeOfMemory = 8192;
-            int index = 1;
+            int index = 0;
             while (true) {
                 int size = random.nextInt(30) + 15;
                 if(sizeOfMemory - size < 0) break;
@@ -359,9 +359,24 @@ public class Main {
         }
     }
 
+    public static void freeSomeArrays(String path){
+        try (FileWriter fw = new FileWriter(path, true);
+            BufferedWriter bw = new BufferedWriter(fw)) {
+            bw.write("dump();");
+            bw.newLine();
+            for(int i = 1; i < 250; i += 2){
+                bw.write("free(arr" + i + ");");
+                bw.newLine();
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         //Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
         generateArrays("tests.txt");
+        freeSomeArrays("tests.txt");
         tenthTest();
     }
 }
