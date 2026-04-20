@@ -22,13 +22,15 @@ public class Memory {
     private static AllocationStrategy strategy = AllocationStrategy.FIRST_FIT;
 
 
-    // => Свободные блоки
-    private static List<FreeBlock> freeBlocks = new ArrayList<>();
+    // => Структуры для быстрого доступа к свободным блокам
+    private static TreeMap<Integer, Deque<FreeBlock>> freeBySize = new TreeMap<>(); // для worst и best
+    private static TreeMap<Integer, FreeBlock> freeByAddress = new TreeMap<>();
+
 
     static{
         staticMemory.order(ByteOrder.BIG_ENDIAN);
         dynamicMemory.order(ByteOrder.BIG_ENDIAN);
-        freeBlocks.add(new FreeBlock(0, DYNAMIC_SIZE));
+        addFreeBlock(new FreeBlock(1, DYNAMIC_SIZE - 1));
     }
 
     // => Вспомогательные внутренние классы
@@ -78,6 +80,17 @@ public class Memory {
         FreeBlock(int address, int size){
             this.address = address;
             this.size = size;
+        }
+
+        // Переопределим следующие функции для возможности сравнивать блоки
+        @Override public boolean equals(Object o){
+            if (this == o) return true;
+            if(!(o instanceof FreeBlock)) return false;
+            return this.address == ((FreeBlock) o).address;
+        }
+
+        @Override public int hashCode(){
+            return Integer.hashCode(address);
         }
     }
 
@@ -131,76 +144,79 @@ public class Memory {
 
     // => Выделения динамической памяти
     private static int allocateDynamic(int size){
-        FreeBlock selectedBlock = null;
-        int selectedIndex = -1;
+        if(size <= 0)
+            throw new RuntimeException("Allocation: size must be > 0!");
 
-        switch (strategy){
-            case FIRST_FIT:
-                for (int i = 0; i < freeBlocks.size(); i++) {
-                    FreeBlock block = freeBlocks.get(i);
-                    if (block.size >= size) {
-                        selectedBlock = block;
-                        selectedIndex = i;
-                        break;
-                    }
-                }
-                break;
-            case BEST_FIT:
-                for (int i = 0; i < freeBlocks.size(); i++) {
-                    FreeBlock block = freeBlocks.get(i);
-                    if (block.size >= size) {
-                        if (selectedBlock == null || block.size < selectedBlock.size) {
-                            selectedBlock = block;
-                            selectedIndex = i;
-                        }
-                    }
-                }
-                break;
-            case WORST_FIT:
-                for(int i = 0; i < freeBlocks.size(); i++){
-                    FreeBlock block = freeBlocks.get(i);
-                    if(block.size >= size){
-                        if(selectedBlock == null || block.size > selectedBlock.size){
-                            selectedBlock = block;
-                            selectedIndex = i;
-                        }
-                    }
-                }
-                break;
-        }
+        FreeBlock block = switch (strategy) {
+            case FIRST_FIT -> findFirstFit(size);
+            case BEST_FIT -> findBestFit(size);
+            case WORST_FIT -> findWorstFit(size);
+        };
 
-        if(selectedBlock == null)
+        if (block == null)
             throw new RuntimeException("Out of memory exception: динамическая память заполнена!");
 
+        int address = block.address;
 
-        int address = selectedBlock.address;
-        if (selectedBlock.size == size) {
-            freeBlocks.remove(selectedIndex);
+        if(block.size == size){
+            removeFreeBlock(block);
         } else {
-            selectedBlock.address += size;
-            selectedBlock.size -= size;
-        } // откусываем кусок от блока и передвигаем адрес его начала
+            FreeBlock newBlock = new FreeBlock(block.address + size, block.size - size);
+            replaceFreeBlock(block, newBlock);
+        }
+
         return address;
     }
 
     private static void freeDynamic(int address, int size){
-        freeBlocks.add(new FreeBlock(address, size));
-        coalesceFreeBlocks();
-    }
+        if(size <= 0) return;
 
-    private static void coalesceFreeBlocks(){
-        freeBlocks.sort(Comparator.comparingInt(a -> a.address));
-        for(int i = 0; i < freeBlocks.size() - 1; i++){
-            var current = freeBlocks.get(i);
-            var next = freeBlocks.get(i + 1);
-            if(current.address + current.size == next.address){
-                current.size += next.size;
-                freeBlocks.remove(i + 1);
-                i--;
+        FreeBlock merged = new FreeBlock(address, size);
+
+        // По сути - реализация coalesce
+        Map.Entry<Integer, FreeBlock> lowerEntry = freeByAddress.lowerEntry(merged.address);
+        if(lowerEntry != null){
+            FreeBlock left = lowerEntry.getValue();
+            if(left.address + left.size == merged.address){
+                removeFreeBlock(left);
+                merged.address = left.address;
+                merged.size += left.size;
             }
         }
+
+        Map.Entry<Integer, FreeBlock> higherEntry = freeByAddress.higherEntry(merged.address);
+        if(higherEntry != null){
+            FreeBlock right = higherEntry.getValue();
+            if(merged.address + merged.size == right.address){
+                removeFreeBlock(right);
+                merged.size += right.size;
+            }
+        }
+
+        addFreeBlock(merged);
     }
 
+    // => Стратегии выбора свободного блока
+    private static FreeBlock findFirstFit(int size){
+        for(var block: freeByAddress.values()){
+            if(block.size >= size)
+                return block;
+        }
+        return null;
+    }
+
+    private static FreeBlock findBestFit(int size){
+        Map.Entry<Integer, Deque<FreeBlock>> entry = freeBySize.ceilingEntry(size); // наименьший ключ, больший либо равный заданному
+        if(entry == null) return null;
+        return entry.getValue().peekFirst();
+    }
+
+    private static FreeBlock findWorstFit(int size){
+        Map.Entry<Integer, Deque<FreeBlock>> entry = freeBySize.lastEntry(); // просто берем самый большой
+        if (entry == null || entry.getKey() < size) return null;
+
+        return entry.getValue().peekFirst();
+    }
 
     // => Массивы
     public static int allocateArray(DataType elementType, int size){
@@ -266,8 +282,10 @@ public class Memory {
             return;
         }
 
-        if (oldAlloc != null)
+        if (oldAlloc != null) {
             freeDynamic(currentDataAddress, oldAlloc.size);
+            dynamicAllocations.remove(currentDataAddress);
+        }
 
         int newDataAddr = allocateDynamic(newSize);
         dynamicMemory.position(newDataAddr);
@@ -335,6 +353,7 @@ public class Memory {
 
         if (oldAlloc != null) {
             freeDynamic(currentDataAddr, oldAlloc.size);
+            dynamicAllocations.remove(currentDataAddr);
         }
 
         int newDataAddr = allocateDynamic(newSize);
@@ -358,6 +377,33 @@ public class Memory {
         dynamicMemory.position(dataAddr);
         dynamicMemory.get(bytes);
         return new BigInteger(bytes);
+    }
+
+    // => Функции для работы с FreeBlock
+    private static void addFreeBlock(FreeBlock block){
+        if (block == null || block.size <= 0) return;
+
+        freeByAddress.put(block.address, block);
+        freeBySize.computeIfAbsent(block.size, k -> new ArrayDeque<>()).addLast(block);
+        // По сути храним по одному ключу несколько блоков одинакового размера, сортировка по размеру
+    }
+
+    private static void removeFreeBlock(FreeBlock block){
+        if(block == null) return;
+
+        freeByAddress.remove(block.address);
+
+        Deque<FreeBlock> deque = freeBySize.get(block.size);
+        if(deque != null){
+            deque.remove(block);
+            if(deque.isEmpty())
+                freeBySize.remove(block.size);
+        }
+    }
+
+    private static void replaceFreeBlock(FreeBlock oldBlock, FreeBlock newBlock){
+        removeFreeBlock(oldBlock);
+        addFreeBlock(newBlock);
     }
 
     // => различные вспомогательные методы
@@ -392,7 +438,7 @@ public class Memory {
         }
 
         System.out.println("=== Free Blocks ===");
-        for (FreeBlock b : freeBlocks) {
+        for (FreeBlock b : freeByAddress.values()) {
             System.out.printf("Addr: 0x%04X, Size: %d%n", b.address, b.size);
         }
     }
@@ -439,7 +485,6 @@ public class Memory {
         ArrayList<Integer> arrays = new ArrayList<>();
         for(int i = 0; i < arrSize; i += 1) {
             int size = random.nextInt(1, 100);
-            // if(freeBlocks.size() == 1 && freeBlocks.getLast().size() < size)
             if(freeSize - size <= 0) break;
             freeSize -= size;
             int ptr = Memory.allocateArray(Memory.DataType.INT, size);
@@ -466,7 +511,7 @@ public class Memory {
         for (DynamicAllocation a : dynamicAllocations.values())
             allBlocks.add(new MemBlock(a.address, a.size, true, a.type.name()));
 
-        for (FreeBlock b : freeBlocks)
+        for (FreeBlock b : freeByAddress.values())
             allBlocks.add(new MemBlock(b.address, b.size, false, "FREE"));
 
 
