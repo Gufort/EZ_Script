@@ -74,7 +74,7 @@ public class Memory {
         }
     }
 
-    private static class FreeBlock{
+    public static class FreeBlock{
         int address;
         int size;
         FreeBlock(int address, int size){
