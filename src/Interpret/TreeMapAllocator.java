@@ -1,18 +1,17 @@
 package Interpret;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class TreeMapAllocator implements Allocator{
     private static TreeMap<Integer, Deque<Memory.FreeBlock>> freeBySize = new TreeMap<>();
     private static TreeMap<Integer, Memory.FreeBlock> freeByAddress = new TreeMap<>();
+    private final Map<Integer, Memory.FreeBlock> freeByEnd = new HashMap<>();
 
     @Override public void addFreeBlock(Memory.FreeBlock block){
         if (block == null || block.size <= 0) return;
 
         freeByAddress.put(block.address, block);
+        freeByEnd.put(block.address + block.size, block);
         freeBySize.computeIfAbsent(block.size, k -> new ArrayDeque<>()).addLast(block);
         // По сути храним по одному ключу несколько блоков одинакового размера, сортировка по размеру
     }
@@ -21,6 +20,7 @@ public class TreeMapAllocator implements Allocator{
         if(block == null) return;
 
         freeByAddress.remove(block.address);
+        freeByEnd.remove(block.address + block.size);
 
         Deque<Memory.FreeBlock> deque = freeBySize.get(block.size);
         if(deque != null){
@@ -60,5 +60,17 @@ public class TreeMapAllocator implements Allocator{
             }
         }
         return null;
+    }
+
+    @Override public Memory.FreeBlock findBlockStartingAt(int address) {
+        return freeByAddress.get(address);
+    }
+
+    @Override public Memory.FreeBlock findBlockEndingAt(int endAddress) {
+        return freeByEnd.get(endAddress);
+    }
+
+    @Override public Collection<Memory.FreeBlock> getFreeBlocks() {
+        return freeByAddress.values();
     }
 }

@@ -6,6 +6,7 @@ public class BucketAllocator implements Allocator{
     private int maxSize;
     private BitSet nonEmptySizes; // Размеры непустых бакетов
     private Map<Integer, Memory.FreeBlock> blocksByStart = new HashMap<>(); // доступ по началу блока
+    private Map<Integer, Memory.FreeBlock> blocksByEnd = new HashMap<>(); // доступ по концу блока
 
     @SuppressWarnings("uncheked")
     private Set<Memory.FreeBlock>[] buckets; // храним все непусты бакеты, аннотация для generic array
@@ -28,6 +29,7 @@ public class BucketAllocator implements Allocator{
         if(block.size > maxSize) throw new IllegalArgumentException("Size of block is large, maxSize = " + maxSize);
 
         blocksByStart.put(block.address, block);
+        blocksByEnd.put(block.address + block.size, block);
 
         buckets[block.size].add(block);
         nonEmptySizes.set(block.size);
@@ -38,6 +40,7 @@ public class BucketAllocator implements Allocator{
         if(block.size > maxSize) throw new IllegalArgumentException("Size of block is large, maxSize = " + maxSize);
 
         blocksByStart.remove(block.address);
+        blocksByEnd.remove(block.address + block.size);
 
         Set<Memory.FreeBlock> bucket = buckets[block.size];
 
@@ -48,14 +51,23 @@ public class BucketAllocator implements Allocator{
     }
 
     @Override public Memory.FreeBlock findFirstFit(int size){
-        // Заглушка по сути, ибо нормальный first-fit написать пока нет мыслей как
-        return findBestFit(size);
+        if (size <= 0 || size > maxSize) return null;
+
+        Memory.FreeBlock bestByAddress = null;
+        for (var block : blocksByStart.values()) {
+            if (block.size >= size &&
+                    (bestByAddress == null || block.address < bestByAddress.address)) {
+                bestByAddress = block;
+            }
+        }
+
+        return bestByAddress;
     }
 
     @Override public Memory.FreeBlock findBestFit(int size){
         if (size <= 0 || size > maxSize) return null;
 
-        int bucketSize = nonEmptySizes.nextSetBit(maxSize);
+        int bucketSize = nonEmptySizes.nextSetBit(size);
 
         if (bucketSize == -1 || bucketSize < size) return null;
 
@@ -65,7 +77,7 @@ public class BucketAllocator implements Allocator{
     @Override public Memory.FreeBlock findWorstFit(int size){
         if (size <= 0 || size > maxSize) return null;
 
-        int bucketSize = nonEmptySizes.nextSetBit(size);
+        int bucketSize = nonEmptySizes.previousSetBit(maxSize);
 
 
         if (bucketSize == -1 || bucketSize < size) return null;
@@ -74,10 +86,23 @@ public class BucketAllocator implements Allocator{
     }
 
     @Override public Memory.FreeBlock findBlockByAddress(int address){
-        for(var block: blocksByStart.values()){
+        for (var block : blocksByStart.values())
             if (block.address <= address && address < block.address + block.size)
                 return block;
-        }
+
         return null;
+
+    }
+
+    @Override public Memory.FreeBlock findBlockStartingAt(int address) {
+        return blocksByStart.get(address);
+    }
+
+    @Override public Memory.FreeBlock findBlockEndingAt(int endAddress) {
+        return blocksByEnd.get(endAddress);
+    }
+
+    @Override public Collection<Memory.FreeBlock> getFreeBlocks() {
+        return blocksByStart.values();
     }
 }

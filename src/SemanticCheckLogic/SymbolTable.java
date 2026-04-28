@@ -64,6 +64,11 @@ public class SymbolTable {
         initStandardFunctionsTable();
     }
 
+    public static void reset() {
+        SymTable = new Hashtable<String, SymbolInfo>(){};
+        initStandardFunctionsTable();
+    }
+
     public static int allocateVariable(SemanticType type, Object initialValue) {
         int address = -1;
         switch(type) {

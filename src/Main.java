@@ -6,6 +6,7 @@ import Interpret.Memory;
 import PrettyPrinters.PrettyPrinterFirst;
 import PrettyPrinters.PrettyPrinterSecond;
 import SemanticCheckLogic.SemanticCheck;
+import SemanticCheckLogic.SymbolTable;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -264,6 +265,10 @@ public class Main {
     }
 
     public static void tenthTest() throws Exception {
+        tenthTestWithAllocator(Memory.AllocatorType.BUCKET, true);
+    }
+
+    public static long tenthTestWithAllocator(Memory.AllocatorType allocatorType, boolean printDetails) throws Exception {
         StringBuilder text = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader("tests.txt"))) {
             String line;
@@ -275,6 +280,10 @@ public class Main {
 
         text.append("dump()");
 
+        SymbolTable.reset();
+        Memory.reset();
+        Memory.setAllocatorType(allocatorType);
+
         var lex = new LexerUnit.Lexer(text.toString());
         try {
             var par = new Parser(lex);
@@ -282,21 +291,46 @@ public class Main {
             progr.visitP(new SemanticCheck());
             InterpretTree.StatementNodeI rooti = (InterpretTree.StatementNodeI) progr.visit(new ConvertASTToInterpretTreeVisitor());
 
-            System.out.println("=== ВЫПОЛНЕНИЕ ПРОГРАММЫ ===");
+            if (printDetails)
+                System.out.println("=== ВЫПОЛНЕНИЕ ПРОГРАММЫ: " + allocatorType + " ===");
+
             var start = System.nanoTime();
             rooti.execute();
             var end = System.nanoTime();
 
-            System.out.println("\n=== Код ===");
-            var pp = new PrettyPrinterSecond();
-            System.out.println(progr.visit(pp));
+            if (printDetails) {
+                System.out.println("\n=== Код ===");
+                var pp = new PrettyPrinterSecond();
+                System.out.println(progr.visit(pp));
+            }
 
             long duration = (end - start) / 1_000_000;
-            System.out.println("\nВремя выполнения: " + duration + " мс");
+            if (printDetails)
+                System.out.println("\nВремя выполнения: " + duration + " мс");
+            return duration;
         } catch (CompilerException.LexerException e) {
             CompilerException.outputError("Lexer error:", e, lex.getLines());
         } catch (CompilerException.SyntaxException e) {
             CompilerException.outputError("Basic.Parser error:", e, lex.getLines());
+        }
+
+        return -1;
+    }
+
+    public static void compareAllocatorsTest() throws Exception {
+        generateArrays("tests.txt");
+        freeSomeArrays("tests.txt");
+
+        System.out.println("===> Выбранная стратегия - " + Memory.strategy + " <===\n");
+        long treeMapTime = tenthTestWithAllocator(Memory.AllocatorType.TREE_MAP, false);
+        long bucketTime = tenthTestWithAllocator(Memory.AllocatorType.BUCKET, false);
+
+        System.out.println("TreeAllocator: " + treeMapTime + " мс");
+        System.out.println("BucketAllocator: " + bucketTime + " мс");
+
+        if (treeMapTime >= 0 && bucketTime >= 0) {
+            long diff = bucketTime - treeMapTime;
+            System.out.println("Разница: " + Math.abs(diff) + " мс");
         }
     }
 
@@ -339,7 +373,7 @@ public class Main {
             BufferedWriter bw = new BufferedWriter(fw)) {
             Random random = new Random();
 
-            int sizeOfMemory = 8192;
+            int sizeOfMemory = 16384;
             int index = 0;
             while (true) {
                 int size = random.nextInt(30) + 15;
@@ -375,8 +409,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         //Memory.testMemoryManager(Memory.AllocationStrategy.FIRST_FIT);
-        generateArrays("tests.txt");
-        freeSomeArrays("tests.txt");
-        tenthTest();
+        //Memory.setAllocatorType(Memory.AllocatorType.BUCKET);
+        compareAllocatorsTest();
     }
 }

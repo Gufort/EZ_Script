@@ -1,5 +1,7 @@
 package Interpret;
 
+import java.util.Collection;
+
 public interface Allocator {
     // Стандартные функции работы со свободными блоками
     void addFreeBlock(Memory.FreeBlock block);
@@ -14,4 +16,8 @@ public interface Allocator {
     Memory.FreeBlock findWorstFit(int size);
 
     Memory.FreeBlock findBlockByAddress(int address);
+
+    Memory.FreeBlock findBlockStartingAt(int address);
+    Memory.FreeBlock findBlockEndingAt(int endAddress);
+    Collection<Memory.FreeBlock> getFreeBlocks();
 }

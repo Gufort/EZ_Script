@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Memory {
     private static final int STATIC_SIZE = 32768;
-    private static final int DYNAMIC_SIZE = 32768;
+    public static final int DYNAMIC_SIZE = 65536;
 
     private static final ByteBuffer staticMemory = ByteBuffer.allocate(STATIC_SIZE);
     private static final ByteBuffer dynamicMemory = ByteBuffer.allocate(DYNAMIC_SIZE);
@@ -19,18 +19,23 @@ public class Memory {
     private static Map<Integer, StaticAllocation> staticAllocations = new HashMap<>();
     private static Map<Integer, DynamicAllocation> dynamicAllocations = new HashMap<>();
 
-    private static AllocationStrategy strategy = AllocationStrategy.FIRST_FIT;
+    public static AllocationStrategy strategy = AllocationStrategy.WORST_FIT;
 
 
     // => Структуры для быстрого доступа к свободным блокам
-    private static TreeMap<Integer, Deque<FreeBlock>> freeBySize = new TreeMap<>(); // для worst и best
-    private static TreeMap<Integer, FreeBlock> freeByAddress = new TreeMap<>();
+    private static Allocator allocator = new BucketAllocator(DYNAMIC_SIZE);
+    private static AllocatorType allocatorType = AllocatorType.BUCKET;
 
+
+    public enum AllocatorType {
+        TREE_MAP,
+        BUCKET
+    }
 
     static{
         staticMemory.order(ByteOrder.BIG_ENDIAN);
         dynamicMemory.order(ByteOrder.BIG_ENDIAN);
-        addFreeBlock(new FreeBlock(1, DYNAMIC_SIZE - 1));
+        allocator.addFreeBlock(new FreeBlock(1, DYNAMIC_SIZE - 1));
     }
 
     // => Вспомогательные внутренние классы
@@ -99,6 +104,44 @@ public class Memory {
         strategy = s;
     }
 
+    // Выбор типа аллокатора
+    public static void setAllocatorType(AllocatorType type) {
+        if (!dynamicAllocations.isEmpty())
+            throw new IllegalStateException(
+                    "Cannot change allocator while dynamic memory has active allocations"
+            );
+
+
+        allocatorType = type;
+
+        switch (type) {
+            case TREE_MAP -> allocator = new TreeMapAllocator();
+            case BUCKET -> allocator = new BucketAllocator(DYNAMIC_SIZE);
+        }
+
+        allocator.addFreeBlock(new FreeBlock(1, DYNAMIC_SIZE - 1));
+    }
+
+    public static void reset() {
+        staticNextAddress = 0;
+        dynamicNextAddress = 0;
+        staticAllocations = new HashMap<>();
+        dynamicAllocations = new HashMap<>();
+
+        for (int i = 0; i < STATIC_SIZE; i++)
+            staticMemory.put(i, (byte) 0);
+
+        for (int i = 0; i < DYNAMIC_SIZE; i++)
+            dynamicMemory.put(i, (byte) 0);
+
+        switch (allocatorType) {
+            case TREE_MAP -> allocator = new TreeMapAllocator();
+            case BUCKET -> allocator = new BucketAllocator(DYNAMIC_SIZE);
+        }
+
+        allocator.addFreeBlock(new FreeBlock(1, DYNAMIC_SIZE - 1));
+    }
+
 
     // => Выделения статической памяти
     private static int allocateStatic(int size){
@@ -148,9 +191,9 @@ public class Memory {
             throw new RuntimeException("Allocation: size must be > 0!");
 
         FreeBlock block = switch (strategy) {
-            case FIRST_FIT -> findFirstFit(size);
-            case BEST_FIT -> findBestFit(size);
-            case WORST_FIT -> findWorstFit(size);
+            case FIRST_FIT -> allocator.findFirstFit(size);
+            case BEST_FIT -> allocator.findBestFit(size);
+            case WORST_FIT -> allocator.findWorstFit(size);
         };
 
         if (block == null)
@@ -158,65 +201,37 @@ public class Memory {
 
         int address = block.address;
 
-        if(block.size == size){
-            removeFreeBlock(block);
+        if (block.size == size) {
+            allocator.removeFreeBlock(block);
         } else {
             FreeBlock newBlock = new FreeBlock(block.address + size, block.size - size);
-            replaceFreeBlock(block, newBlock);
+            allocator.replaceFreeBlock(block, newBlock);
         }
 
         return address;
     }
 
     private static void freeDynamic(int address, int size){
-        if(size <= 0) return;
+        if (size <= 0) return;
 
         FreeBlock merged = new FreeBlock(address, size);
 
-        // По сути - реализация coalesce
-        Map.Entry<Integer, FreeBlock> lowerEntry = freeByAddress.lowerEntry(merged.address);
-        if(lowerEntry != null){
-            FreeBlock left = lowerEntry.getValue();
-            if(left.address + left.size == merged.address){
-                removeFreeBlock(left);
-                merged.address = left.address;
-                merged.size += left.size;
-            }
+        FreeBlock left = allocator.findBlockEndingAt(merged.address);
+        if (left != null) {
+            allocator.removeFreeBlock(left);
+            merged.address = left.address;
+            merged.size += left.size;
         }
 
-        Map.Entry<Integer, FreeBlock> higherEntry = freeByAddress.higherEntry(merged.address);
-        if(higherEntry != null){
-            FreeBlock right = higherEntry.getValue();
-            if(merged.address + merged.size == right.address){
-                removeFreeBlock(right);
-                merged.size += right.size;
-            }
+        FreeBlock right = allocator.findBlockStartingAt(merged.address + merged.size);
+        if (right != null) {
+            allocator.removeFreeBlock(right);
+            merged.size += right.size;
         }
 
-        addFreeBlock(merged);
+        allocator.addFreeBlock(merged);
     }
 
-    // => Стратегии выбора свободного блока
-    private static FreeBlock findFirstFit(int size){
-        for(var block: freeByAddress.values()){
-            if(block.size >= size)
-                return block;
-        }
-        return null;
-    }
-
-    private static FreeBlock findBestFit(int size){
-        Map.Entry<Integer, Deque<FreeBlock>> entry = freeBySize.ceilingEntry(size); // наименьший ключ, больший либо равный заданному
-        if(entry == null) return null;
-        return entry.getValue().peekFirst();
-    }
-
-    private static FreeBlock findWorstFit(int size){
-        Map.Entry<Integer, Deque<FreeBlock>> entry = freeBySize.lastEntry(); // просто берем самый большой
-        if (entry == null || entry.getKey() < size) return null;
-
-        return entry.getValue().peekFirst();
-    }
 
     // => Массивы
     public static int allocateArray(DataType elementType, int size){
@@ -379,32 +394,6 @@ public class Memory {
         return new BigInteger(bytes);
     }
 
-    // => Функции для работы с FreeBlock
-    private static void addFreeBlock(FreeBlock block){
-        if (block == null || block.size <= 0) return;
-
-        freeByAddress.put(block.address, block);
-        freeBySize.computeIfAbsent(block.size, k -> new ArrayDeque<>()).addLast(block);
-        // По сути храним по одному ключу несколько блоков одинакового размера, сортировка по размеру
-    }
-
-    private static void removeFreeBlock(FreeBlock block){
-        if(block == null) return;
-
-        freeByAddress.remove(block.address);
-
-        Deque<FreeBlock> deque = freeBySize.get(block.size);
-        if(deque != null){
-            deque.remove(block);
-            if(deque.isEmpty())
-                freeBySize.remove(block.size);
-        }
-    }
-
-    private static void replaceFreeBlock(FreeBlock oldBlock, FreeBlock newBlock){
-        removeFreeBlock(oldBlock);
-        addFreeBlock(newBlock);
-    }
 
     // => различные вспомогательные методы
     public static void dumpMemory() {
@@ -438,7 +427,7 @@ public class Memory {
         }
 
         System.out.println("=== Free Blocks ===");
-        for (FreeBlock b : freeByAddress.values()) {
+        for (FreeBlock b : allocator.getFreeBlocks()) {
             System.out.printf("Addr: 0x%04X, Size: %d%n", b.address, b.size);
         }
     }
@@ -511,7 +500,7 @@ public class Memory {
         for (DynamicAllocation a : dynamicAllocations.values())
             allBlocks.add(new MemBlock(a.address, a.size, true, a.type.name()));
 
-        for (FreeBlock b : freeByAddress.values())
+        for (FreeBlock b : allocator.getFreeBlocks())
             allBlocks.add(new MemBlock(b.address, b.size, false, "FREE"));
 
 
