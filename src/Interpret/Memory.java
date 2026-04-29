@@ -54,7 +54,10 @@ public class Memory {
     public enum AllocationStrategy{
         FIRST_FIT, // в первое попавшееся свободное место
         BEST_FIT,  // в самое маленькое подходящее свободное место
-        WORST_FIT  // в самое большое подходящее свободное место
+        WORST_FIT, // в самое большое подходящее свободное место
+        EXACT_FIT, // сначала точное совпадение размера, иначе best-fit
+        NEXT_FIT,  // поиск от последней позиции выделения
+        SEGREGATED_FIT // поиск в размерном классе, иначе best-fit
     }
 
     private static class StaticAllocation{
@@ -104,7 +107,7 @@ public class Memory {
         strategy = s;
     }
 
-    // Выбор типа аллокатора
+    // Выбор типа Allocator
     public static void setAllocatorType(AllocatorType type) {
         if (!dynamicAllocations.isEmpty())
             throw new IllegalStateException(
@@ -194,6 +197,9 @@ public class Memory {
             case FIRST_FIT -> allocator.findFirstFit(size);
             case BEST_FIT -> allocator.findBestFit(size);
             case WORST_FIT -> allocator.findWorstFit(size);
+            case EXACT_FIT -> allocator.findExactFit(size);
+            case NEXT_FIT -> allocator.findNextFit(size);
+            case SEGREGATED_FIT -> allocator.findSegregatedFit(size);
         };
 
         if (block == null)

@@ -3,9 +3,11 @@ package Interpret;
 import java.util.*;
 
 public class TreeMapAllocator implements Allocator{
-    private static TreeMap<Integer, Deque<Memory.FreeBlock>> freeBySize = new TreeMap<>();
-    private static TreeMap<Integer, Memory.FreeBlock> freeByAddress = new TreeMap<>();
-    private final Map<Integer, Memory.FreeBlock> freeByEnd = new HashMap<>();
+    private TreeMap<Integer, Deque<Memory.FreeBlock>> freeBySize = new TreeMap<>();
+    private TreeMap<Integer, Memory.FreeBlock> freeByAddress = new TreeMap<>();
+    private Map<Integer, Memory.FreeBlock> freeByEnd = new HashMap<>();
+
+    private int nextFitLastAddress = 1;
 
     @Override public void addFreeBlock(Memory.FreeBlock block){
         if (block == null || block.size <= 0) return;
@@ -49,6 +51,71 @@ public class TreeMapAllocator implements Allocator{
         if (entry == null || entry.getKey() < size) return null;
 
         return entry.getValue().peekFirst();
+    }
+
+    @Override public Memory.FreeBlock findExactFit(int size) {
+        Deque<Memory.FreeBlock> exact = freeBySize.get(size);
+
+        if (exact != null && !exact.isEmpty())
+            return exact.peekFirst();
+
+        return findBestFit(size);
+    }
+
+    @Override public Memory.FreeBlock findNextFit(int size) {
+        Map.Entry<Integer, Memory.FreeBlock> entry =
+                freeByAddress.ceilingEntry(nextFitLastAddress);
+
+        while (entry != null) {
+            Memory.FreeBlock block = entry.getValue();
+
+            if (block.size >= size) {
+                nextFitLastAddress = block.address + size;
+                return block;
+            }
+
+            entry = freeByAddress.higherEntry(entry.getKey());
+        }
+
+        entry = freeByAddress.firstEntry();
+
+        while (entry != null) {
+            Memory.FreeBlock block = entry.getValue();
+
+            if (block.size >= size) {
+                nextFitLastAddress = block.address + size;
+                return block;
+            }
+
+            entry = freeByAddress.higherEntry(entry.getKey());
+        }
+
+        return null;
+    }
+
+    @Override public Memory.FreeBlock findSegregatedFit(int size) {
+        if (size <= 0) return null;
+
+        int classEnd = sizeClassEnd(size);
+
+        Map.Entry<Integer, Deque<Memory.FreeBlock>> entry =
+                freeBySize.ceilingEntry(size);
+
+        if (entry != null && entry.getKey() <= classEnd)
+            return entry.getValue().peekFirst();
+
+
+        return findBestFit(size);
+    }
+
+    private int sizeClassEnd(int size) {
+        int result = 1;
+
+        while (result < size) {
+            result <<= 1;
+        }
+
+        return result;
     }
 
     @Override public Memory.FreeBlock findBlockByAddress(int address){

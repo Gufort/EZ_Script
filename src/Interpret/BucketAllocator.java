@@ -11,6 +11,8 @@ public class BucketAllocator implements Allocator{
     @SuppressWarnings("uncheked")
     private Set<Memory.FreeBlock>[] buckets; // храним все непусты бакеты, аннотация для generic array
 
+    private int nextFitLastAddress = 1;
+
     @SuppressWarnings("unchecked")
     public BucketAllocator(int maxSize) {
         if (maxSize <= 0)
@@ -83,6 +85,66 @@ public class BucketAllocator implements Allocator{
         if (bucketSize == -1 || bucketSize < size) return null;
 
         return buckets[bucketSize].iterator().next();
+    }
+
+    @Override public Memory.FreeBlock findExactFit(int size){
+        if (size <= 0 || size > maxSize) return null;
+
+        if (!buckets[size].isEmpty()) {
+            return buckets[size].iterator().next();
+        }
+
+        return findBestFit(size);
+    }
+
+    @Override public Memory.FreeBlock findNextFit(int size){
+        if (size <= 0 || size > maxSize) return null;
+
+        Memory.FreeBlock candidate = null;
+
+        for(var block: blocksByStart.values()){
+            if(block.address >= nextFitLastAddress && block.size >= size)
+                if(candidate == null || block.address < candidate.address)
+                    candidate = block;
+        }
+
+        if (candidate == null) {
+            for (Memory.FreeBlock block : blocksByStart.values()) {
+                if (block.size >= size)
+                    if (candidate == null || block.address < candidate.address)
+                        candidate = block;
+
+            }
+        }
+
+        if (candidate != null)
+            nextFitLastAddress = candidate.address + size;
+
+        return candidate;
+    }
+
+    @Override public Memory.FreeBlock findSegregatedFit(int size) {
+        if (size <= 0 || size > maxSize) return null;
+
+        int classEnd = sizeClassEnd(size);
+
+        int bucketSize = nonEmptySizes.nextSetBit(size);
+
+        if (bucketSize != -1 && bucketSize <= classEnd) {
+            return buckets[bucketSize].iterator().next();
+        }
+
+        return findBestFit(size);
+    }
+
+    private int sizeClassEnd(int size) {
+        int result = 1;
+
+        while (result < size && result < maxSize) {
+            result <<= 1;
+        }
+
+        return Math.min(result, maxSize);
     }
 
     @Override public Memory.FreeBlock findBlockByAddress(int address){

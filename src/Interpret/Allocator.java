@@ -15,6 +15,10 @@ public interface Allocator {
     Memory.FreeBlock findBestFit(int size);
     Memory.FreeBlock findWorstFit(int size);
 
+    Memory.FreeBlock findExactFit(int size);
+    Memory.FreeBlock findNextFit(int size);
+    Memory.FreeBlock findSegregatedFit(int size);
+
     Memory.FreeBlock findBlockByAddress(int address);
 
     Memory.FreeBlock findBlockStartingAt(int address);
