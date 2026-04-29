@@ -8,7 +8,7 @@ public class BucketAllocator implements Allocator{
     private Map<Integer, Memory.FreeBlock> blocksByStart = new HashMap<>(); // доступ по началу блока
     private Map<Integer, Memory.FreeBlock> blocksByEnd = new HashMap<>(); // доступ по концу блока
 
-    @SuppressWarnings("uncheked")
+    @SuppressWarnings("unchecked")
     private Set<Memory.FreeBlock>[] buckets; // храним все непусты бакеты, аннотация для generic array
 
     private int nextFitLastAddress = 1;
