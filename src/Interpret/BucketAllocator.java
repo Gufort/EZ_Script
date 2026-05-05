@@ -4,26 +4,30 @@ import java.util.*;
 
 public class BucketAllocator implements Allocator{
     private int maxSize;
+    private int sizeOfSmall = 512;
     private BitSet nonEmptySizes; // Размеры непустых бакетов
     private Map<Integer, Memory.FreeBlock> blocksByStart = new HashMap<>(); // доступ по началу блока
     private Map<Integer, Memory.FreeBlock> blocksByEnd = new HashMap<>(); // доступ по концу блока
 
     @SuppressWarnings("unchecked")
     private Set<Memory.FreeBlock>[] buckets; // храним все непусты бакеты, аннотация для generic array
+    private TreeMap<Integer, Set<Memory.FreeBlock>> largeBlocks;
 
     private int nextFitLastAddress = 1;
 
     @SuppressWarnings("unchecked")
     public BucketAllocator(int maxSize) {
+        this.maxSize = maxSize;
         if (maxSize <= 0)
             throw new IllegalArgumentException("maxSize must be > 0");
 
-        this.maxSize = maxSize;
-        this.nonEmptySizes = new BitSet(maxSize + 1);
-        this.buckets = new LinkedHashSet[maxSize + 1];
+        this.nonEmptySizes = new BitSet(sizeOfSmall + 1);
+        this.buckets = new LinkedHashSet[sizeOfSmall + 1];
 
-        for (int i = 0; i <= maxSize; i++)
+        for (int i = 0; i <= sizeOfSmall; i++)
             buckets[i] = new LinkedHashSet<>();
+
+        largeBlocks = new TreeMap<>();
     }
 
     @Override public void addFreeBlock(Memory.FreeBlock block){
@@ -33,8 +37,11 @@ public class BucketAllocator implements Allocator{
         blocksByStart.put(block.address, block);
         blocksByEnd.put(block.address + block.size, block);
 
-        buckets[block.size].add(block);
-        nonEmptySizes.set(block.size);
+        if(block.size <= sizeOfSmall) {
+            buckets[block.size].add(block);
+            nonEmptySizes.set(block.size);
+        }
+        else largeBlocks.computeIfAbsent(block.size, k -> new LinkedHashSet<>()).add(block);
     }
 
     @Override public void removeFreeBlock(Memory.FreeBlock block){
@@ -43,13 +50,22 @@ public class BucketAllocator implements Allocator{
 
         blocksByStart.remove(block.address);
         blocksByEnd.remove(block.address + block.size);
+        if(block.size <= sizeOfSmall) {
+            Set<Memory.FreeBlock> bucket = buckets[block.size];
 
-        Set<Memory.FreeBlock> bucket = buckets[block.size];
+            bucket.remove(block);
 
-        bucket.remove(block);
-
-        if(bucket.isEmpty())
-            nonEmptySizes.clear(block.size);
+            if (bucket.isEmpty())
+                nonEmptySizes.clear(block.size);
+        }
+        else{
+            Set<Memory.FreeBlock> set = largeBlocks.get(block.size);
+            if(set != null){
+                set.remove(block);
+                if(set.isEmpty())
+                    largeBlocks.remove(block.size);
+            }
+        }
     }
 
     @Override public Memory.FreeBlock findFirstFit(int size){
@@ -69,29 +85,45 @@ public class BucketAllocator implements Allocator{
     @Override public Memory.FreeBlock findBestFit(int size){
         if (size <= 0 || size > maxSize) return null;
 
-        int bucketSize = nonEmptySizes.nextSetBit(size);
+        if(size <= sizeOfSmall){
+            int s = nonEmptySizes.nextSetBit(size);
+            if(s != -1 && s <= sizeOfSmall)
+                return  buckets[s].iterator().next();
+        }
 
-        if (bucketSize == -1 || bucketSize < size) return null;
+        var entry = largeBlocks.ceilingEntry(size);
+        if (entry != null) {
+            return entry.getValue().iterator().next();
+        }
 
-        return buckets[bucketSize].iterator().next();
+        return null;
     }
 
     @Override public Memory.FreeBlock findWorstFit(int size){
         if (size <= 0 || size > maxSize) return null;
 
-        int bucketSize = nonEmptySizes.previousSetBit(maxSize);
+        var entry = largeBlocks.lastEntry();
+        if (entry != null && entry.getKey() >= size)
+            return entry.getValue().iterator().next();
 
+        int s = nonEmptySizes.previousSetBit(sizeOfSmall);
+        if (s >= size)
+            return buckets[s].iterator().next();
 
-        if (bucketSize == -1 || bucketSize < size) return null;
-
-        return buckets[bucketSize].iterator().next();
+        return null;
     }
 
     @Override public Memory.FreeBlock findExactFit(int size){
         if (size <= 0 || size > maxSize) return null;
 
-        if (!buckets[size].isEmpty()) {
-            return buckets[size].iterator().next();
+        if (size <= sizeOfSmall) {
+            if (!buckets[size].isEmpty())
+                return buckets[size].iterator().next();
+        }
+        else {
+            var set = largeBlocks.get(size);
+            if (set != null && !set.isEmpty())
+                return set.iterator().next();
         }
 
         return findBestFit(size);
@@ -124,16 +156,6 @@ public class BucketAllocator implements Allocator{
     }
 
     @Override public Memory.FreeBlock findSegregatedFit(int size) {
-        if (size <= 0 || size > maxSize) return null;
-
-        int classEnd = sizeClassEnd(size);
-
-        int bucketSize = nonEmptySizes.nextSetBit(size);
-
-        if (bucketSize != -1 && bucketSize <= classEnd) {
-            return buckets[bucketSize].iterator().next();
-        }
-
         return findBestFit(size);
     }
 
